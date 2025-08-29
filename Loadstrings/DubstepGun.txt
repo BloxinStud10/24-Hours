@@ -1,0 +1,21 @@
+--[[
+	FE Dubstep Gun
+	
+	https://discord.gg/bjTxKxjJVc
+	Join 24-HOURS for more scripts
+	
+	All hats are listed in this game: https://www.roblox.com/games/81507949691628
+]]
+
+--// You can change settings below
+trulysettings = {
+	patchma = {}, --unavailavle
+	script = {
+		AnimationSpeed = 1,
+		HideEffects = false,
+		MuteMusic = false
+	}
+}
+
+--// The script
+loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/DubstepGun.luau"))()
