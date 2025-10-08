@@ -5,4 +5,4 @@
 	Join 24-HOURS for more scripts (in the future)
 ]]--
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/StarGlitcher.luau"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/Discontinued_StarGlitcher.luau"))()
