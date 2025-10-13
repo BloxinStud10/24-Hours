@@ -1,0 +1,21 @@
+--[[
+	FE Star Glitcher (Public Test)
+	
+	https://discord.gg/bjTxKxjJVc
+	Join 24-HOURS for more scripts (in the future)
+]]--
+
+--Settings
+ScriptSettings = {
+	LegacyMode = false, --Set to true if you want to use the old version
+	InstaKill = false, --If you want to fling people quickly, set this to true
+	Finisher = true, --Play finisher animation
+	Introduction = true,  --Play intro animation
+	MuteSongs = false, --self-explanatory
+	VisibleHitbox = true; --self-explanatory
+	Hitmarker = true; --Shows damage dealt
+	HitSoundId = "rbxassetid://1129547534" --Custom hit sound
+}
+
+--Loadstring
+loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/Hacklord.luau"))()
