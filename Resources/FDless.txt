@@ -270,7 +270,6 @@ local applysettings=function(t)
 	breakjointsmethod=t.breakjointsmethod
 	simrad=t.simrad
 	hidedeatheffect=t.hidedeatheffect
-	permadeath=t.permadeath
 end
 
 local cleantable={}
@@ -827,11 +826,13 @@ local reanimate=function()
 						pdloadedtime=nil
 					end
 					if breakjointsmethod==4 then
+						insGet(newc,"BreakJoints")(newc)
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
-							replicatesignal(insGet(h,"ServerBreakJoints"))
-						else
-							insGet(newc,"BreakJoints")(newc)
+							insSet(h,"Health",0)
+							if replicatesignal then
+								replicatesignal(insGet(h,"ServerBreakJoints"))
+							end
 						end
 					elseif breakjointsmethod==1 then
 						insGet(newc,"BreakJoints")(newc)
@@ -1869,6 +1870,35 @@ local reanimate=function()
 		isOnGround=isOnGround,
 		setHipHeight=setHipHeight
 	}
+end
+
+if replicatesignal then
+	permadeath=true
+	replicatesignal(cdsb)
+	pdloadedtime=osclock()+rst
+	local lastc=nil
+	local hdied=function()
+		if not c then
+			replicatesignal(cdsb)
+			pdloadedtime=osclock()+rst
+		end
+	end
+	Connect(GetPropertyChangedSignal(lp,"Character"),function()
+		local c=lp.Character
+		if c and c~=lastc then
+			lastc=c
+			replicatesignal(cdsb)
+			pdloadedtime=osclock()+rst
+			while lastc==c do
+				local h=FindFirstChildOfClass(c,"Humanoid")
+				if h then
+					Connect(insGet(h,"Died"),hdied)
+					break
+				end
+				Wait(preanimation)
+			end
+		end
+	end)
 end
 
 return {
