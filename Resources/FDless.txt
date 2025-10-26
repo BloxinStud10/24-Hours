@@ -241,6 +241,94 @@ local makeplaceholder=function(v)
 end
 local emptyfunction=function() end
 
+local Draggable=function(window,obj)
+	local MB1enum = e.UserInputType.MouseButton1
+	local TOUCHenum = e.UserInputType.Touch
+	obj = obj or window
+	local activeEntered = 0
+	local mouseStart = nil
+	local dragStart = nil
+	local inputbegancon = nil
+	local rendersteppedcon = nil
+	local inputendedcon = nil
+	local inputendedf=function(a)
+		a=insGet(a,"UserInputType")
+		if (a==MB1enum) or (a==TOUCHenum) then
+			Disconnect(rendersteppedcon)
+			Disconnect(inputendedcon)
+		end
+	end
+	local rendersteppedf=function()
+		local off = GetMouseLocation(uis)-mouseStart
+		insSet(window,"Position",dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")))
+	end
+	local inputbeganf=function(a)
+		a=insGet(a,"UserInputType")
+		if ((a==MB1enum) or (a==TOUCHenum)) and (activeEntered==0) and not GetFocusedTextBox(uis) then
+			mouseStart=GetMouseLocation(uis)
+			dragStart=insGet(window,"Position")
+			if rendersteppedcon then Disconnect(rendersteppedcon) end
+			rendersteppedcon = Connect(renderstepped,rendersteppedf)
+			if inputendedcon then Disconnect(inputendedcon) end
+			inputendedcon = Connect(insGet(uis,"InputEnded"),inputendedf)
+		end
+	end
+	Connect(insGet(obj,"MouseEnter"),function()
+		if inputbegancon then Disconnect(inputbegancon) end
+		inputbegancon = Connect(insGet(uis,"InputBegan"),inputbeganf)
+	end)
+	Connect(insGet(obj,"MouseLeave"),function()
+		Disconnect(inputbegancon)
+	end)
+	local ondes=function(d)
+		if IsA(d,"GuiObject") then
+			local thisEntered = false
+			local thisAdded = false
+			local con0 = Connect(insGet(d,"MouseEnter"),function()
+				thisEntered = true
+				if (not thisAdded) and insGet(d,"Active") then
+					activeEntered = activeEntered + 1
+					thisAdded = true
+				end
+			end)
+			local con1 = Connect(insGet(d,"MouseLeave"),function()
+				thisEntered = false
+				if thisAdded then
+					activeEntered = activeEntered - 1
+					thisAdded = false
+				end
+			end)
+			local con2 = Connect(GetPropertyChangedSignal(d,"Active"),function()
+				if thisEntered then
+					if thisAdded and not insGet(d,"Active") then
+						activeEntered = activeEntered - 1
+						thisAdded = false
+					elseif insGet(d,"Active") and not thisAdded then
+						activeEntered = activeEntered + 1
+						thisAdded = true
+					end
+				end
+			end)
+			local con3 = nil
+			con3 = Connect(insGet(d,"AncestryChanged"),function()
+				if not IsDescendantOf(d,window) then
+					if thisAdded then
+						activeEntered = activeEntered - 1
+					end
+					Disconnect(con0)
+					Disconnect(con1)
+					Disconnect(con2)
+					Disconnect(con3)
+				end
+			end)
+		end
+	end
+	Connect(insGet(window,"DescendantAdded"),ondes)
+	for i,v in next,GetDescendants(window) do 
+		ondes(v)
+	end
+end
+
 local allowshiftlock=nil
 local ctrltp=nil
 local placeholders=nil
@@ -1915,6 +2003,7 @@ return {
 	rs=rs,
 	mouse=mouse,
 	emptyfunction=emptyfunction,
+	Draggable=Draggable,
 	applysettings=applysettings,
 	getcharacter=getcharacter,
 	cleantable=cleantable,
