@@ -1917,5 +1917,16 @@ return {
 	emptyfunction=emptyfunction,
 	applysettings=applysettings,
 	getcharacter=getcharacter,
-	cleantable=cleantable
+	cleantable=cleantable,
+	
+	Clone=Clone,
+	ClearAllChildren=ClearAllChildren,
+	Destroy=Destroy,
+	IsA=IsA,
+	FindFirstChildOfClass=FindFirstChildOfClass,
+	FindFirstChildWhichIsA=FindFirstChildWhichIsA,
+	GetChildren=GetChildren,
+	GetDescendants=GetDescendants,
+	IsDescendantOf=IsDescendantOf,
+	GetPropertyChangedSignal=GetPropertyChangedSignal
 }
