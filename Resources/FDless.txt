@@ -37,6 +37,7 @@ local game=game
 local replicatesignal=replicatesignal
 
 local i=Instance.new 
+local u2=UDim2.new
 local v2=Vector2.new 
 local v3=Vector3.new
 local c3=Color3.new 
