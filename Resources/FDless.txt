@@ -267,7 +267,7 @@ local Draggable=function(window,obj)
 	local inputbeganf=function(a)
 		if not active then return end
 		a=insGet(a,"UserInputType")
-		if ((a==MB1enum) or (a==TOUCHenum)) and (activeEntered==0) and not GetFocusedTextBox(uis) then
+		if ((a==MB1enum) or (a==TOUCHenum)) and not GetFocusedTextBox(uis) then
 			mouseStart=GetMouseLocation(uis)
 			dragStart=insGet(window,"Position")
 			if rendersteppedcon then Disconnect(rendersteppedcon) end
