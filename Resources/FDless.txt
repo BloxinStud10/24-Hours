@@ -253,7 +253,6 @@ local Draggable=function(window,obj)
 	local rendersteppedcon = nil
 	local inputendedcon = nil
 	local inputendedf=function(a)
-		if not active then return end
 		a=insGet(a,"UserInputType")
 		if (a==MB1enum) or (a==TOUCHenum) then
 			Disconnect(rendersteppedcon)
@@ -265,9 +264,8 @@ local Draggable=function(window,obj)
 		insSet(window,"Position",dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")))
 	end
 	local inputbeganf=function(a)
-		if not active then return end
 		a=insGet(a,"UserInputType")
-		if ((a==MB1enum) or (a==TOUCHenum)) and not GetFocusedTextBox(uis) then
+		if ((a==MB1enum) or (a==TOUCHenum)) and active and not GetFocusedTextBox(uis) then
 			mouseStart=GetMouseLocation(uis)
 			dragStart=insGet(window,"Position")
 			if rendersteppedcon then Disconnect(rendersteppedcon) end
