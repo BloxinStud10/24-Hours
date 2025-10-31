@@ -242,7 +242,7 @@ local makeplaceholder=function(v)
 end
 local emptyfunction=function() end
 
-local Draggable=function(window,obj,alwayinbounds)
+local Draggable=function(window,obj,islerp)
 	local MB1enum = e.UserInputType.MouseButton1
 	local TOUCHenum = e.UserInputType.Touch
 	obj = obj or window
@@ -260,21 +260,12 @@ local Draggable=function(window,obj,alwayinbounds)
 		end
 	end
 	local rendersteppedf=function()
-		local newpos
-		if alwayinbounds then
-			local sX=insGet(mouse,"ViewSizeX")
-			local sY=insGet(mouse,"ViewSizeY")
-			local mousepos=GetMouseLocation(uis)
-			
-			mousepos=v2(clamp(insGet(mousepos,"X"),-sX,sX),clamp(insGet(mousepos,"Y"),-sY,sY))
-			
-			local off = mousepos-mouseStart
-			newpos=dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y"))
+		local off = GetMouseLocation(uis)-mouseStart
+		if islerp then
+			insSet(window,"Position",insGet(dragStart,"Lerp")(dragStart,dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")),deltaTime))
 		else
-			local off = GetMouseLocation(uis)-mouseStart
-			newpos=dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y"))
+			insSet(window,"Position",dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")))
 		end
-		insSet(window,"Position",newpos)
 	end
 	local inputbeganf=function(a)
 		a=insGet(a,"UserInputType")
