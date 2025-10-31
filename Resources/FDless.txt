@@ -262,7 +262,8 @@ local Draggable=function(window,obj,islerp)
 	local rendersteppedf=function()
 		local off = GetMouseLocation(uis)-mouseStart
 		if islerp then
-			insSet(window,"Position",insGet(dragStart,"Lerp")(dragStart,dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")),deltaTime))
+			local pos=insGet(window,"Position")
+			insSet(window,"Position",pos:Lerp(dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")),deltaTime))
 		else
 			insSet(window,"Position",dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")))
 		end
