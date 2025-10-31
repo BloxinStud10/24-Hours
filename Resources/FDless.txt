@@ -262,7 +262,7 @@ local Draggable=function(window,obj,alwayinbounds)
 	local rendersteppedf=function()
 		local newpos
 		if alwayinbounds then
-			local sX=clamp(insGet(mouse,"ViewSizeX")
+			local sX=insGet(mouse,"ViewSizeX")
 			local sY=insGet(mouse,"ViewSizeY")
 			local mousepos=GetMouseLocation(uis)
 			
