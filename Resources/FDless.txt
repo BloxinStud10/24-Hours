@@ -317,6 +317,7 @@ local applysettings=function(t)
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
 	hidedeatheffect=t.hidedeatheffect or hidedeatheffect
+	permadeath=t.permadeath or permadeath
 end
 
 local cleantable={}
