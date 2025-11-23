@@ -41,7 +41,7 @@ local replicatesignal=replicatesignal
 local i=Instance.new 
 local u2=UDim2.new
 local v2=Vector2.new 
-local v3=Vector3.new
+local v3=vector.create
 local c3=Color3.new 
 local cf=CFrame.new
 local cfl=CFrame.lookAt
@@ -51,7 +51,7 @@ local rp=RaycastParams.new
 
 local sine=osclock()
 local deltaTime=0
-local v3_0=v3()
+local v3_0=v3(0,0,0)
 local v3_101=v3(1,0,1)
 local v3_010=v3(0,1,0)
 local cf_0=cf()
@@ -113,6 +113,7 @@ local ws=FindFirstChildOfClass(game,"Workspace")
 local uis=FindFirstChildOfClass(game,"UserInputService")
 local gs=FindFirstChildOfClass(game,"GuiService")
 local sg=FindFirstChildOfClass(game,"StarterGui")
+local cg=FindFirstChildOfClass(game,"CoreGui")
 local lp=insGet(plrs,"LocalPlayer")
 local pg=FindFirstChildOfClass(lp,"PlayerGui")
 local mouse=insGet(lp,"GetMouse")(lp)
@@ -172,7 +173,12 @@ local accessorylimbs={
 	{meshid="17387586286",textureid="",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Leg"},
 	{meshid="17387586286",textureid="",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Leg"},
 	
-	{meshid="126825022897778",textureid="130689541138804",C0=cf_0,Name="Torso"},
+	{meshid="18640899369",textureid="",C0=cf_0,Name="Torso"},
+	{meshid="18640901641",textureid="",C0=cf_0,Name="Left Leg"},
+	{meshid="18640901641",textureid="",C0=cf_0,Name="Right Leg"},
+	{meshid="18640914129",textureid="",C0=cf_0,Name="Left Arm"},
+	{meshid="18640914129",textureid="",C0=cf_0,Name="Right Arm"},
+	
 	{meshid="90736849096372",textureid="79186624401216",C0=cf_0,Name="Right Arm"},
 	{meshid="105141400603933",textureid="71060417496309",C0=cf_0,Name="Left Arm"},
 	{meshid="99608462237958",textureid="130809869695496",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
@@ -184,11 +190,11 @@ local accessorylimbs={
 	{meshid="125405780718494",textureid="136752500636691",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
 	{meshid="125405780718494",textureid="136752500636691",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
 	
-	{meshid="126825022897778",textureid="125975972015302",C0=cf_0,Name="Torso"},
-	{meshid="137702817952968",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
-	{meshid="137702817952968",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="137702817952968",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
-	{meshid="137702817952968",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
+	{meshid="126825022897778",textureid="",C0=cf_0,Name="Torso"},
+	{meshid="",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
+	{meshid="",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
 	
 	{meshid="14768666349",textureid="",C0=cf_0,Name="Torso"},
 	{meshid="14241018198",textureid="",C0=cf_0,Name="Torso"},
@@ -286,6 +292,15 @@ local Draggable=function(window,obj)
 	Connect(GetPropertyChangedSignal(obj,"Active"),function()
 		active = insGet(obj,"Active")
 	end)
+end
+
+local hlp=nil
+if gethui then
+	hlp=gethui()
+elseif pcall(GetChildren,cg) then
+	hlp=cg
+else
+	hlp=pg
 end
 
 local allowshiftlock=nil
@@ -611,11 +626,15 @@ local reanimate=function()
 	local raycastparams=rp()
 	raycastparams.FilterType=e.RaycastFilterType.Exclude
 	raycastparams.RespectCanCollide=true
+	local rayexclusions={}
 	local rayfilter={}
 	local characters={}
 	local refreshrayfilter=function()
 		tclear(rayfilter)
 		for i,v in next,characters do
+			tinsert(rayfilter,v)
+		end
+		for i,v in next,rayexclusions do
 			tinsert(rayfilter,v)
 		end
 		raycastparams.FilterDescendantsInstances=rayfilter
@@ -943,7 +962,7 @@ local reanimate=function()
 	end
 
 	local mradN05=-0.008726646259971648
-	local pi2=math.pi/2-0.0001
+	local pi2=3.141592653589793/2-0.0001
 	local npi2=-pi2
 	local KeyCode=e.KeyCode
 	local enumYXZ=e.RotationOrder.YXZ
@@ -1258,7 +1277,7 @@ local reanimate=function()
 			insSet(h,"OutlineColor",c3(1,0,0))
 			insSet(h,"FillTransparency",0.5)
 			insSet(h,"OutlineTransparency",0)
-			insSet(h,"Parent",i10)
+			insSet(h,"Parent",hlp)
 			flingtable[targetpart]=h
 		else
 			flingtable[targetpart]=false
@@ -1891,9 +1910,16 @@ local reanimate=function()
 	local isOnGround=function() --returns true if character is on ground
 		return onground
 	end
+	local isWalking=function() --returns true if character is walking
+		return isWalking
+	end
+	local setCameraMoveable=function(v) --make camera movement to true or false
+		cameraMoveable=v
+	end
 
 	return {
 		characters=characters,
+		rayexclusions=rayexclusions,
 		rootparts=rootparts,
 		cframes=cframes,
 		joints=joints,
@@ -1920,11 +1946,13 @@ local reanimate=function()
 		setCfr=setCfr,
 		setCamCF=setCamCF,
 		setshiftlock=setshiftlock,
+		setCameraMoveable=setCameraMoveable,
 		getVel=getVel,
 		getDirs=getDirs,
 		getCamCF=getCamCF,
 		isFirstPerson=isFirstPerson,
 		isOnGround=isOnGround,
+		isWalking=isWalking,
 		setHipHeight=setHipHeight
 	}
 end
