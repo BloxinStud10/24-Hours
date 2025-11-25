@@ -5,6 +5,8 @@
 	revive the goat or let others take over that is the question
 	
 	discord.gg/QMy5f6DrbH
+	
+	Note: This is still a regular FDless but edited so you can't convert with this lol
 ]]
 
 --no need to get and index the library tables with function names every time the script uses them
@@ -336,9 +338,15 @@ local applysettings=function(t)
 end
 
 local cleantable={}
+local onstopfunc=nil
 local c=nil
 local getcharacter=function()
 	return c
+end
+local onstopcallback=function(f)
+	if type(f)=="function" then
+		onstopfunc=f
+	end
 end
 local stopreanimate=function() 
 	if c then
@@ -354,6 +362,10 @@ local stopreanimate=function()
 					v:Disconnect()
 				end
 			end
+		end
+		if type(onstopfunc)=="function" then
+			onstopfunc()
+			onstopfunc=nil
 		end
 		if permadeath then
 			replicatesignal(cdsb)
@@ -2004,7 +2016,7 @@ return {
 	applysettings=applysettings,
 	getcharacter=getcharacter,
 	cleantable=cleantable,
-	
+	onstopcallback=onstopcallback,
 	Clone=Clone,
 	ClearAllChildren=ClearAllChildren,
 	Destroy=Destroy,
