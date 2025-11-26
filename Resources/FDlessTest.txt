@@ -374,7 +374,7 @@ local attachments={
 }
 local fetchaccessories=function(c,t)
 	if not typeof(t)=="table" or #t==0 then return end
-	local Humanoid=FindFirstChildOfClass(c,"Humanoid") or timegp(c,"Humanoid,"Humanoid",1)
+	local Humanoid=FindFirstChildOfClass(c,"Humanoid") or timegp(c,"Humanoid","Humanoid",1)
 	if not Humanoid then return end
 	for _,v in next,t do
 		local a=v[1]
