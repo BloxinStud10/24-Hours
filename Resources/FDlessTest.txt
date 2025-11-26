@@ -297,6 +297,7 @@ local Draggable=function(window,obj)
 	end)
 end
 
+local accessoryinfos={}
 local accessories={}
 local attachments={
 	[Enum.HumanoidRigType.R6]={
@@ -372,6 +373,7 @@ local attachments={
 	}
 }
 local fetchaccessories=function(t)
+	if not typeof(t)=="table" or #t==0 then return end
 	local Humanoid=FindFirstChildOfClass(c,"Humanoid") or timegp(c,"Humanoid,"Humanoid",1)
 	if not Humanoid then return end
 	for _,v in next,t do
@@ -899,6 +901,7 @@ local reanimate=function()
 					local hrp=timegp(newc,"HumanoidRootPart","BasePart",10)
 					if not (hrp and c and IsDescendantOf(newc,ws)) then return end
 					c=newc
+					fetchaccessories(accessoryinfos)
 					local fi,fv=next(flingtable)
 					if fi then
 						if permadeath and not pdloadedtime then
@@ -2130,7 +2133,7 @@ return {
 	getcharacter=getcharacter,
 	cleantable=cleantable,
 	onstopcallback=onstopcallback,
-	fetchaccessories=fetchaccessories,
+	accessoryinfos=accessoryinfos,
 	Clone=Clone,
 	ClearAllChildren=ClearAllChildren,
 	Destroy=Destroy,
