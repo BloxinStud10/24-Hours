@@ -902,7 +902,6 @@ local reanimate=function()
 					local hrp=timegp(newc,"HumanoidRootPart","BasePart",10)
 					if not (hrp and c and IsDescendantOf(newc,ws)) then return end
 					c=newc
-					fetchaccessories(newc,accessoryinfos)
 					local fi,fv=next(flingtable)
 					if fi then
 						if permadeath and not pdloadedtime then
@@ -1012,6 +1011,7 @@ local reanimate=function()
 					if newc~=c then
 						return
 					end
+					fetchaccessories(newc,accessoryinfos)
 					primarypart=insGet(newc,"PrimaryPart") or hrp
 					if hidedeatheffect and GetCoreGuiEnabled(sg,enumH) then
 						SetCoreGuiEnabled(sg,enumH,false)
