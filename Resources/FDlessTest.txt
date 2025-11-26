@@ -372,7 +372,7 @@ local attachments={
 		LeftAnkleRigAttachment={"LeftLowerLeg",cf(-0.000000,-0.547157,-0.000002,1,0,0,0,1,0,0,0,1)}
 	}
 }
-local fetchaccessories=function(t)
+local fetchaccessories=function(c,t)
 	if not typeof(t)=="table" or #t==0 then return end
 	local Humanoid=FindFirstChildOfClass(c,"Humanoid") or timegp(c,"Humanoid,"Humanoid",1)
 	if not Humanoid then return end
@@ -901,7 +901,7 @@ local reanimate=function()
 					local hrp=timegp(newc,"HumanoidRootPart","BasePart",10)
 					if not (hrp and c and IsDescendantOf(newc,ws)) then return end
 					c=newc
-					fetchaccessories(accessoryinfos)
+					fetchaccessories(newc,accessoryinfos)
 					local fi,fv=next(flingtable)
 					if fi then
 						if permadeath and not pdloadedtime then
