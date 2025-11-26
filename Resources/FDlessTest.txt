@@ -379,7 +379,7 @@ local fetchaccessories=function(c,t)
 	for _,v in next,t do
 		local a=v[1]
 		local s=v[2] or 1
-		local accessory=Accessories[a]
+		local accessory=accessories[a]
 		if accessory then
 			accessory=Clone(accessory)
 		else
@@ -387,6 +387,7 @@ local fetchaccessories=function(c,t)
 			if typeof(accessory)=="table" then
 				accessory=accessory[1]
 			end
+			accessories[a]=Clone(accessory)
 		end
 		if typeof(accessory)=="Instance" then
 			local weld=i("Weld")
