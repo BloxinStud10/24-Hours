@@ -404,7 +404,7 @@ local fetchaccessories=function(c,t)
 			insSet(weld,"Part0",handle)
 			insSet(weld,"Part1",FindFirstChild(c,attachmentt[1],true))
 			insSet(weld,"Parent",handle)
-			insSet(accessory,"Parent",Character)
+			insSet(accessory,"Parent",c)
 		else
 			warn("oh no! Cannot fetch model!")
 		end
