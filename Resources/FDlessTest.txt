@@ -453,6 +453,10 @@ local applysettings=function(t)
 	permadeath=t.permadeath or permadeath
 end
 
+local returnDelta=function() --deltaTime cuz im lazy asf
+	return deltaTime
+end
+
 local cleantable={}
 local onstopfunc=nil
 local c=nil
