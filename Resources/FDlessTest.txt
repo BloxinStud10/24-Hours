@@ -2135,6 +2135,7 @@ return {
 	emptyfunction=emptyfunction,
 	Draggable=Draggable,
 	applysettings=applysettings,
+	returnDelta=returnDelta,
 	getcharacter=getcharacter,
 	cleantable=cleantable,
 	onstopcallback=onstopcallback,
