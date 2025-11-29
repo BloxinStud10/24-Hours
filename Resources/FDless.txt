@@ -1973,7 +1973,7 @@ local reanimate=function()
 	}
 end
 
-if replicatesignal then
+local pdfunc=function()
 	permadeath=true
 	replicatesignal(cdsb)
 	pdloadedtime=osclock()+rst
@@ -2022,6 +2022,7 @@ return {
 	getcharacter=getcharacter,
 	cleantable=cleantable,
 	onstopcallback=onstopcallback,
+	pdfunc=pdfunc,
 	Clone=Clone,
 	ClearAllChildren=ClearAllChildren,
 	Destroy=Destroy,
