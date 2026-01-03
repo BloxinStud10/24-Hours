@@ -1398,6 +1398,7 @@ BasicFunctions.TorusRandom=function(R,Y,r)
 end
 
 local Effects={}
+Effects.__index=Effects
 local Settings={
 	Container=nil,
 	EffectList={},
