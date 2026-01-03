@@ -6,6 +6,8 @@ local BasicFunctions={}
 
 local game=game
 local next=next
+local rawget=rawget
+local rawset=rawset
 local tostring=tostring
 local tonumber=tonumber
 local enum=Enum
@@ -47,6 +49,7 @@ local ssub=string.sub
 local smatch=string.match
 local ssplit=string.split
 local sfind=string.find
+local bc=BrickColor.new
 local v3=vector.create
 local vmagnitude=vector.magnitude
 local vlerp=vector.lerp
@@ -280,6 +283,39 @@ local NewSignal=function()
 	return setmetatable({},Signal)
 end
 BasicFunctions.NewSignal=NewSignal
+
+--[==[
+	BetterValue (I wrote ts)
+]==]
+local ValueInstance={}
+ValueInstance.Destroyed=false
+ValueInstance.__index=function(self,a)
+	return rawget(self,"_data")[a]
+end
+ValueInstance.__newindex=function(self,a,b)
+	if not ValueInstance.Destroyed then
+		local key=rawget(self,"_data")
+		local old=key[a]
+		if old~=b then
+			key[a]=b
+			self.Changed:Fire(a,b)
+		end
+	end
+end
+local DefaultValues={StringValue="",BoolValue=false,BrickColorValue=bc("Medium stone grey"),CFrameValue=cf_0,Color3Value=c3(),IntValue=0,NumberValue=0,ObjectValue=nil,Vector3Value=v3_0}
+local NewValue=function(Class)
+	local Value=DefaultValues[Class]
+	if Value then
+		local Instance={}
+		Instance._data={Value=Value}
+		Instance.Changed=NewSignal()
+		Instance.GetPropertyChangedSignal=function(self,property) if not ValueInstance.Destroyed then if self[property] then return self.Changed end end end
+		Instance.Destroy=function(self) if not ValueInstance.Destroyed then ValueInstance.Destroyed=true self.Changed:DisconnectAll() end end
+		return setmetatable(Instance,ValueInstance)
+	end
+	return error("Nah")
+end
+BasicFunctions.NewValue=NewValue
 
 --[==[
 	BoatTween
