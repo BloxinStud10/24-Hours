@@ -1,5 +1,5 @@
 <h1 align="center">24-HOURS</h1>
-24 Hours is a library of scripts made by Amazing Team.<br>
+24-Hours is a library of scripts made by Amazing Team.<br>
 We are here to provide users the best experiences<br>
 
 <h1 align="center">Licenses & Rights</h1>
