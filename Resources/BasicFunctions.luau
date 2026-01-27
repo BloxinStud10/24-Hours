@@ -1601,7 +1601,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 							SpecialMesh.Scale=Size
 						elseif Elapse>1 and Elapse<2 then
-							local Elapse=2-DeltaTime/Alpha
+							local Elapse=2-DeltaTime
 							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
 							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
 							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
@@ -1639,7 +1639,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
 							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 						elseif Elapse>1 and Elapse<2 then
-							Elapse=2-DeltaTime/Alpha
+							Elapse=2-DeltaTime
 							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
 							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
 							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
