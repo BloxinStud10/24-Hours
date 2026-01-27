@@ -1601,7 +1601,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 							SpecialMesh.Scale=Size
 						elseif Elapse>1 and Elapse<2 then
-							local Elapse=2-DeltaTime
+							local Elapse=2-DeltaTime/Alpha
 							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
 							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
 							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
@@ -1629,8 +1629,8 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 			else
 				EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false;EffectPart.Parent=Settings.Container
 				EffectMaid:GiveTask(Connect(Heartbeat,function()
-					local delta=osclock()-StartTime
-					Elapse=delta/Alpha
+					local DeltaTime=osclock()-StartTime
+					Elapse=DeltaTime/Alpha
 					if Reverse then
 						if Elapse<=1 then
 							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
@@ -1639,7 +1639,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
 							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 						elseif Elapse>1 and Elapse<2 then
-							Elapse=2-DeltaTime
+							Elapse=2-DeltaTime/Alpha
 							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
 							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
 							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
