@@ -208,7 +208,18 @@ local accessorylimbs={
 	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5271630954950384,1.5707963267948966,0),cf(-0.05,0.2,0)),Name="Left Arm"},
 	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5707963267948966,-1.5707963267948966,0),cf(-0.1,0.25,0)),Name="Right Leg"},
 	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5707963267948966,1.5707963267948966,0),cf(0.1,0.25,0)),Name="Left Leg"},
-	{meshid="4819720316",textureid="4819722776",C0=angles(0,0,0.2617993877991494),Name="Torso"}
+	{meshid="4819720316",textureid="4819722776",C0=angles(0,0,0.2617993877991494),Name="Torso"},
+	
+	{meshid="139792224823925",textureid="",C0=cf_0,Name="Torso"},
+	{meshid="105263225400272",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="105263225400272",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="83395427313429",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
+	{meshid="83395427313429",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
+	
+	{meshid="",textureid="97155254696037",C0=angles(1.7671458676442586,-0.16580627893946132,0.39269908169872414),Name="Right Arm"},
+	{meshid="",textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
+	{meshid="",textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
+	{meshid="",textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
 }
 
 --querydescendants faster than getchildren and checks in lua
