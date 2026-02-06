@@ -11,7 +11,6 @@ without explicit permission from the author.
 ## Credits
 - White Hat - The founder of 24-HOURS
 - [Epicatos](https://github.com/BloxinStud10) - Script publisher/creator [me]
-- BadLuck - Designer
 - MyWorld - FDLess Reanimation
 
 ## Social
