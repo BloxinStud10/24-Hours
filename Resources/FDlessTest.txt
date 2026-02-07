@@ -1,6 +1,7 @@
+--!optimize 2
 --[[
 	FDless reanimate by MyWorld
-	From Patchma Hub V52 [Debug]
+	From Patchma Hub V52b [Debug]
 	
 	revive the goat or let others take over that is the question
 	
@@ -61,6 +62,8 @@ local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
 local pdloadedtime=nil
+
+local enumMD=e.MouseBehavior.Default
 
 --not "local function rs" to not assign debug names
 local rs=function()
@@ -252,10 +255,11 @@ local makeplaceholder=function(v)
 	v=Clone(v)
 	local mesh=FindFirstChildOfClass(v,"SpecialMesh")
 	if mesh then
-		mesh.Parent=nil
+		insSet(mesh,"Parent",nil)
 		ClearAllChildren(v)
 		ClearAllChildren(mesh)
-		mesh.Parent=v
+		insSet(mesh,"Name",rs())
+		insSet(mesh,"Parent",v)
 	else
 		ClearAllChildren(v)
 	end
@@ -426,14 +430,7 @@ local fetchaccessories=function(c,t)
 	end
 end
 
-local hlp=nil
-if gethui then
-	hlp=gethui()
-elseif pcall(GetChildren,cg) then
-	hlp=cg
-else
-	hlp=pg
-end
+local hlp=(gethui and gethui()) or (typeof(cg)=="Instance" and cg) or pg
 
 local allowshiftlock=nil
 local ctrltp=nil
@@ -476,6 +473,10 @@ end
 local cleantable={}
 local onstopfunc=nil
 local c=nil
+local cframes={}
+local charcons={}
+local flingtable={}
+local onnewcamera=emptyfunction
 local getcharacter=function()
 	return c
 end
@@ -487,6 +488,26 @@ end
 local stopreanimate=function() 
 	if c then
 		c=nil
+		if permadeath then
+			replicatesignal(cdsb)
+		end
+		for i,v in next,cframes do
+			local p=i.v
+			if p then
+				Destroy(p)
+			end
+		end
+		tclear(cframes)
+		for i,v in next,flingtable do
+			if v then --it could be false
+				Destroy(v)
+			end
+		end
+		tclear(flingtable)
+		for i,v in next,charcons do
+			Disconnect(v)
+		end
+		tclear(charcons)
 		for _,v in next,cleantable do
 			local type=typeof(v)
 			if type=="Instance" then
@@ -499,13 +520,13 @@ local stopreanimate=function()
 				end
 			end
 		end
+		tclear(cleantable)
 		if type(onstopfunc)=="function" then
 			onstopfunc()
 			onstopfunc=nil
 		end
-		if permadeath then
-			replicatesignal(cdsb)
-		end
+		insSet(uis,"MouseBehavior",enumMD)
+		onnewcamera()
 		return true
 	end
 	return false
@@ -546,7 +567,7 @@ local reanimate=function()
 	local camcon0=nil
 	local camcon1=nil
 	local camcon2=nil
-	local onnewcamera=function()
+	onnewcamera=function()
 		refcam()
 		if camcon0 then 
 			Disconnect(camcon0)
@@ -612,7 +633,6 @@ local reanimate=function()
 		rightLeg={Name="Right Leg"}
 	}
 	rootpart=R6parts.root
-	local cframes={}
 	for i,v in next,R6parts do
 		cframes[v]=cfr
 	end
@@ -787,7 +807,6 @@ local reanimate=function()
 		end
 		raycastparams.FilterDescendantsInstances=rayfilter
 	end
-	local flingtable={}
 	local rootparts={}
 	for i,v in next,accessorylimbs do
 		v.p=getPart(v.Name)
@@ -900,7 +919,6 @@ local reanimate=function()
 	end
 
 	local simradv=0
-	local charcons={}
 	local enumH=e.CoreGuiType.Health
 	local onplayer=function(v)
 		simradv=simradv+1000
@@ -1067,7 +1085,7 @@ local reanimate=function()
 					else
 						insGet(newc,"BreakJoints")(newc)
 					end
-					Connect(insGet(newc,"DescendantAdded"),ondes)
+					cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
 					for i,v in next,QueryDescendants(newc,"Attachment") do
 						ondes(v)
 					end
@@ -1115,7 +1133,6 @@ local reanimate=function()
 	local enumMB2=e.UserInputType.MouseButton2
 	local enumMLCP=e.MouseBehavior.LockCurrentPosition
 	local enumMLC=(insGet(uis,"TouchEnabled") and enumMLCP) or e.MouseBehavior.LockCenter 
-	local enumMD=e.MouseBehavior.Default
 	local enumMW=e.UserInputType.MouseWheel
 	local enumMM=e.UserInputType.MouseMovement
 
@@ -1281,6 +1298,7 @@ local reanimate=function()
 			cameraZoomInputMagnitude=vmagnitude(insGet(cameraRotateInputObject,"Position")-insGet(cameraZoomInputObject,"Position"))
 		end
 	end))
+	local cameraMoveable=true
 	tinsert(cleantable,Connect(insGet(uis,"TouchMoved"),function(inputObject)
 		local touchPos=insGet(inputObject,"Position")
 		local touchX=v3Get(touchPos,"X")
@@ -1309,7 +1327,7 @@ local reanimate=function()
 					cammag=0
 					firstperson=true
 				end
-			elseif inputObject==cameraRotateInputObject then
+			elseif inputObject==cameraRotateInputObject and cameraMoveable then
 				local rotation=GetMouseDelta(uis)
 				camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 				camrotY=v2Get(rotation,"X")*mradN05+camrotY
@@ -1367,7 +1385,7 @@ local reanimate=function()
 	tinsert(cleantable,Connect(insGet(uis,"InputChanged"),function(a,b)
 		if b then return end
 		local inputType=insGet(a,"UserInputType")
-		if mouseCameraMove and inputType==enumMM then
+		if mouseCameraMove and inputType==enumMM and cameraMoveable then
 			local rotation=GetMouseDelta(uis)
 			camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 			camrotY=v2Get(rotation,"X")*mradN05+camrotY
@@ -1386,9 +1404,6 @@ local reanimate=function()
 	end))
 
 	local predictionfling=function(target)
-		if not c then
-			return false
-		end
 		if typeof(target)~="Instance" then 
 			target=insGet(mouse,"Target")
 			if not target then
@@ -1469,33 +1484,6 @@ local reanimate=function()
 	local onground=nil
 	local con=nil
 	local mainFunction=function()
-		if not c then 
-			for i,v in next,cframes do
-				local p=i.v
-				if p then
-					Destroy(p)
-				end
-			end
-			for i,v in next,flingtable do
-				if v then --it could be false
-					Destroy(v)
-				end
-			end
-			for i,v in next,charcons do
-				Disconnect(v)
-			end
-			for i,v in next,cleantable do
-				Disconnect(v)
-			end
-			insSet(uis,"MouseBehavior",enumMD)
-			onnewcamera()
-			local c=insGet(lp,"Character")
-			if c then
-				insSet(cam,"CameraSubject",FindFirstChildOfClass(c,"Humanoid"))
-			end
-			return con and Disconnect(con) 
-		end
-
 		sine=osclock()
 		local delta=sine-lastsine
 		deltaTime=min(delta*10,1)
@@ -1825,59 +1813,77 @@ local reanimate=function()
 		local claimposY=v3Get(claimpos,"Y")
 		for i,v in next,cframes do
 			local part=i.p
+			local novel=i.n
 
 			if part then
-				if insGet(part,"ReceiveAge")==0 then
-					local placeholder=i.v
+				if novel then
 					local vpos=cfGet(v,"Position")
 					if novoid and (v3Get(vpos,"Y")<novoid) then
 						v=cfAdd(v,v3_010*(novoid-v3Get(vpos,"Y")))
 					end
-					local lastpos=i.l
-					local vel=(vpos-lastpos)/delta
-					local mag=vmagnitude(vel)
-					if mag<0.11730194091796875 then --0.0156402587890625*15/2
-						if placeholder and i.b then
-							insSet(placeholder,"Parent",nil)
-							i.b=false
+					insSet(part,"CFrame",v)
+					insSet(part,"AssemblyAngularVelocity",v3_0)
+				else
+					if insGet(part,"ReceiveAge")==0 then
+						local placeholder=i.v
+						local vpos=cfGet(v,"Position")
+						if novoid and (v3Get(vpos,"Y")<novoid) then
+							v=cfAdd(v,v3_010*(novoid-v3Get(vpos,"Y")))
 						end
-						i.l=cfGet(v,"Position")
-						v=cfAdd(v,idleoff)
-					elseif mag>speedlimit then
-						if placeholder then
-							insSet(placeholder,"CFrame",v)
-							if not i.b then
-								insSet(placeholder,"Parent",ws)
-								i.b=true
+						local lastpos=i.l
+						local vel=(vpos-lastpos)/delta
+						local mag=vmagnitude(vel)
+						if mag<0.11730194091796875 then --0.0156402587890625*15/2
+							if placeholder and i.b then
+								insSet(placeholder,"Parent",nil)
+								i.b=false
 							end
-						end
-						vel=vnormalize(vel)*speedlimit
-						local newpos=lastpos+vel*delta
-						v=cfAdd(cfGet(v,"Rotation"),newpos)
-						i.l=newpos
-					else
-						if placeholder and i.b then
-							insSet(placeholder,"Parent",nil)
-							i.b=false
-						end
-						i.l=cfGet(v,"Position")
-					end
-					local claimtime=i.c
-					if claimtime then
-						if sine-claimtime<retVelTime then
-							local Ydiff=cfGet(v,"Y")-claimposY
-							local velY=25.01
-							local fallingTime=0
-							while (Ydiff>0) or (velY>0) do
-								fallingTime=fallingTime+0.025
-								if fallingTime>0.6 then
-									break
+							i.l=cfGet(v,"Position")
+							v=cfAdd(v,idleoff)
+						elseif mag>speedlimit then
+							if placeholder then
+								insSet(placeholder,"CFrame",v)
+								if not i.b then
+									insSet(placeholder,"Parent",ws)
+									i.b=true
 								end
-								velY=velY-velYdelta
-								Ydiff=Ydiff+(velY*0.025)
 							end
-							insSet(part,"AssemblyLinearVelocity",(claimpos-cfGet(v,"Position"))*v3_101/fallingTime+v3_net)
+							vel=vnormalize(vel)*speedlimit
+							local newpos=lastpos+vel*delta
+							v=cfAdd(cfGet(v,"Rotation"),newpos)
+							i.l=newpos
 						else
+							if placeholder and i.b then
+								insSet(placeholder,"Parent",nil)
+								i.b=false
+							end
+							i.l=cfGet(v,"Position")
+						end
+						local claimtime=i.c
+						if claimtime then
+							if sine-claimtime<retVelTime then
+								local Ydiff=cfGet(v,"Y")-claimposY
+								local velY=25.01
+								local fallingTime=0
+								while (Ydiff>0) or (velY>0) do
+									fallingTime=fallingTime+0.025
+									if fallingTime>0.6 then
+										break
+									end
+									velY=velY-velYdelta
+									Ydiff=Ydiff+(velY*0.025)
+								end
+								insSet(part,"AssemblyLinearVelocity",(claimpos-cfGet(v,"Position"))*v3_101/fallingTime+v3_net)
+							else
+								local vel1=vel*noYvelTime+xzvel
+								if vmagnitude(vel1)>25.01 then
+									insSet(part,"AssemblyLinearVelocity",vnormalize(vel1)*v3_xzL+v3_net)
+								else
+									insSet(part,"AssemblyLinearVelocity",vel1*v3_xz+v3_net)
+								end
+							end
+						else
+							i.c=sine
 							local vel1=vel*noYvelTime+xzvel
 							if vmagnitude(vel1)>25.01 then
 								insSet(part,"AssemblyLinearVelocity",vnormalize(vel1)*v3_xzL+v3_net)
@@ -1885,26 +1891,18 @@ local reanimate=function()
 								insSet(part,"AssemblyLinearVelocity",vel1*v3_xz+v3_net)
 							end
 						end
+						insSet(part,"CFrame",v)
+						insSet(part,"AssemblyAngularVelocity",idlerv)
 					else
-						i.c=sine
-						local vel1=vel*noYvelTime+xzvel
-						if vmagnitude(vel1)>25.01 then
-							insSet(part,"AssemblyLinearVelocity",vnormalize(vel1)*v3_xzL+v3_net)
-						else
-							insSet(part,"AssemblyLinearVelocity",vel1*v3_xz+v3_net)
-						end
-					end
-					insSet(part,"CFrame",v)
-					insSet(part,"AssemblyAngularVelocity",idlerv)
-				else
-					i.c=nil
-					i.l=insGet(part,"Position")
-					local placeholder=i.v
-					if placeholder then
-						insSet(placeholder,"CFrame",v)
-						if not i.b then
-							insSet(placeholder,"Parent",ws)
-							i.b=true
+						i.c=nil
+						i.l=insGet(part,"Position")
+						local placeholder=i.v
+						if placeholder then
+							insSet(placeholder,"CFrame",v)
+							if not i.b then
+								insSet(placeholder,"Parent",ws)
+								i.b=true
+							end
 						end
 					end
 				end
@@ -1924,7 +1922,7 @@ local reanimate=function()
 
 	sine=osclock()
 	lastsine=sine
-	con=Connect(heartbeat,mainFunction)
+	tinsert(cleantable,Connect(heartbeat,mainFunction))
 	mainFunction()
 
 	local refreshjoints=function(v) --use this on the main part if u have parts that
@@ -2133,36 +2131,4 @@ local pdfunc=function()
 	end)
 end
 
-return {
-	reanimate=reanimate,
-	stopreanimate=stopreanimate,
-	getMetamethodFromErrorStack=getMetamethodFromErrorStack,
-	insSet=insSet,
-	insGet=insGet,
-	cfGet=cfGet,
-	cfMul=cfMul,
-	cfAdd=cfAdd,
-	v3Get=v3Get,
-	v2Get=v2Get,
-	rs=rs,
-	mouse=mouse,
-	emptyfunction=emptyfunction,
-	Draggable=Draggable,
-	applysettings=applysettings,
-	returnDelta=returnDelta,
-	getcharacter=getcharacter,
-	cleantable=cleantable,
-	onstopcallback=onstopcallback,
-	accessoryinfos=accessoryinfos,
-	pdfunc=pdfunc,
-	Clone=Clone,
-	ClearAllChildren=ClearAllChildren,
-	Destroy=Destroy,
-	IsA=IsA,
-	FindFirstChildOfClass=FindFirstChildOfClass,
-	FindFirstChildWhichIsA=FindFirstChildWhichIsA,
-	GetChildren=GetChildren,
-	QueryDescendants=QueryDescendants,
-	IsDescendantOf=IsDescendantOf,
-	GetPropertyChangedSignal=GetPropertyChangedSignal
-}
+return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=pdfunc,accessoryinfos=accessoryinfos}
