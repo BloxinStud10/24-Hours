@@ -61,7 +61,6 @@ local cf_0=cf()
 local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
-local pdloadedtime=nil
 
 local enumMD=e.MouseBehavior.Default
 
@@ -122,8 +121,6 @@ local cg=FindFirstChildOfClass(game,"CoreGui")
 local lp=insGet(plrs,"LocalPlayer")
 local pg=FindFirstChildOfClass(lp,"PlayerGui")
 local mouse=insGet(lp,"GetMouse")(lp)
-local cdsb=insGet(lp,"ConnectDiedSignalBackend")
-local rst=insGet(plrs,"RespawnTime")+0.07 --1/15
 local preanimation=insGet(rus,"PreAnimation")
 local heartbeat=insGet(rus,"Heartbeat")
 local renderstepped=insGet(rus,"RenderStepped")
@@ -328,8 +325,6 @@ local respawntp=nil
 local breakjointsmethod=nil
 local simrad=false
 local hidedeatheffect=nil
-local permadeath=nil
-local refit=false
 
 local applysettings=function(t)
 	allowshiftlock=t.allowshiftlock or allowshiftlock
@@ -347,8 +342,6 @@ local applysettings=function(t)
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
 	hidedeatheffect=t.hidedeatheffect or hidedeatheffect
-	permadeath=(replicatesignal and t.permadeath) or permadeath
-	refit=(permadeath and t.refit) or refit
 end
 
 local returnDelta=function() --deltaTime cuz im lazy asf
@@ -373,9 +366,6 @@ end
 local stopreanimate=function() 
 	if c then
 		c=nil
-		if permadeath then
-			replicatesignal(cdsb)
-		end
 		for i,v in next,cframes do
 			local p=i.v
 			if p then
@@ -718,9 +708,6 @@ local reanimate=function()
 				if t.p==p then
 					t.p=nil
 				end
-				if refit and c then
-					replicatesignal(cdsb)
-				end
 			end
 		end)
 	end
@@ -827,10 +814,6 @@ local reanimate=function()
 					c=newc
 					local fi,fv=next(flingtable)
 					if fi then
-						if permadeath and not pdloadedtime then
-							replicatesignal(cdsb)
-							pdloadedtime=osclock()+rst
-						end
 						if flingchangestate==3 then
 							local hum=FindFirstChildOfClass(c,"Humanoid")
 							if hum then
@@ -918,9 +901,6 @@ local reanimate=function()
 						twait(0.25)
 					elseif respawntp==3 then
 						local t=osclock()+0.25
-						if pdloadedtime and pdloadedtime>t then
-							t=pdloadedtime
-						end
 						local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
 						while twait() do
 							insSet(hrp,"CFrame",startcf)
@@ -937,12 +917,6 @@ local reanimate=function()
 					primarypart=insGet(newc,"PrimaryPart") or hrp
 					if hidedeatheffect and GetCoreGuiEnabled(sg,enumH) then
 						SetCoreGuiEnabled(sg,enumH,false)
-					end
-					if pdloadedtime then
-						if (osclock()<pdloadedtime) then
-							twait(pdloadedtime-osclock())
-						end
-						pdloadedtime=nil
 					end
 					if breakjointsmethod==4 then
 						insGet(newc,"BreakJoints")(newc)
@@ -1309,9 +1283,6 @@ local reanimate=function()
 		local targetpart=QueryDescendants(target,">BasePart#HumanoidRootPart")[1] or QueryDescendants(target,">BasePart#Torso")[1] or QueryDescendants(target,">BasePart#UpperTorso")[1]
 		if (not targetpart) or (flingtable[targetpart]~=nil) then
 			return false
-		end
-		if permadeath then
-			replicatesignal(cdsb)
 		end
 		if highlightflingtargets then
 			local h=i("Highlight")
@@ -1987,32 +1958,4 @@ local reanimate=function()
 	}
 end
 
-local pdfunc=function()
-	replicatesignal(cdsb)
-	pdloadedtime=osclock()+rst
-	local lastc=nil
-	local hdied=function()
-		if not c then
-			replicatesignal(cdsb)
-			pdloadedtime=osclock()+rst
-		end
-	end
-	Connect(GetPropertyChangedSignal(lp,"Character"),function()
-		local c=lp.Character
-		if c and c~=lastc then
-			lastc=c
-			replicatesignal(cdsb)
-			pdloadedtime=osclock()+rst
-			while lastc==c do
-				local h=FindFirstChildOfClass(c,"Humanoid")
-				if h then
-					Connect(insGet(h,"Died"),hdied)
-					break
-				end
-				Wait(preanimation)
-			end
-		end
-	end)
-end
-
-return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=pdfunc}
+return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction}
