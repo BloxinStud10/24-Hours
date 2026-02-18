@@ -1,7 +1,7 @@
 --!optimize 2
 --[[
 	FDless reanimate by MyWorld
-	From Patchma Hub V52b [Debug]
+	From Patchma Hub V52b [Test]
 	
 	revive the goat or let others take over that is the question
 	
@@ -40,6 +40,8 @@ local type=type
 local typeof=typeof
 local game=game
 local replicatesignal=replicatesignal
+local sethiddenproperty=sethiddenproperty
+local setscriptable=setscriptable
 
 local i=Instance.new 
 local u2=UDim2.new
@@ -52,6 +54,7 @@ local angles=CFrame.fromEulerAngles --faster than .Angles
 local e=Enum 
 local rp=RaycastParams.new 
 
+local nan=0/0
 local sine=osclock()
 local deltaTime=0
 local v3_0=v3(0,0,0)
@@ -61,7 +64,7 @@ local cf_0=cf()
 local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
-local pdloadedtime=nil
+local v3_nan=v3_0/0
 
 local enumMD=e.MouseBehavior.Default
 
@@ -70,9 +73,9 @@ local rs=function()
 	local s=""
 	for i=1,mrandom(8,15) do
 		if mrandom(2)==2 then
-			s=s..schar(mrandom(65,90))
+			s..=schar(mrandom(65,90))
 		else
-			s=s..schar(mrandom(97,122))
+			s..=schar(mrandom(97,122))
 		end
 	end
 	return s
@@ -122,7 +125,6 @@ local cg=FindFirstChildOfClass(game,"CoreGui")
 local lp=insGet(plrs,"LocalPlayer")
 local pg=FindFirstChildOfClass(lp,"PlayerGui")
 local mouse=insGet(lp,"GetMouse")(lp)
-local cdsb=insGet(lp,"ConnectDiedSignalBackend")
 local rst=insGet(plrs,"RespawnTime")+0.07 --1/15
 local preanimation=insGet(rus,"PreAnimation")
 local heartbeat=insGet(rus,"Heartbeat")
@@ -227,7 +229,7 @@ local accessorylimbs={
 
 --querydescendants faster than getchildren and checks in lua
 local timeQueryDescendants=function(p,s,t)
-	t=osclock()+t
+	t+=osclock()
 	local refresh=true
 	local con=Connect(insGet(p,"DescendantAdded"),function()
 		refresh=true
@@ -439,12 +441,12 @@ local clickfling=nil
 local highlightflingtargets=nil
 local discharscripts=nil
 local flingchangestate=nil
+local flingmethod=1
+local instantfling=false
 local respawntp=nil
 local breakjointsmethod=nil
 local simrad=false
 local hidedeatheffect=nil
-local permadeath=nil
-local refit=false
 
 local applysettings=function(t)
 	allowshiftlock=t.allowshiftlock or allowshiftlock
@@ -458,17 +460,19 @@ local applysettings=function(t)
 		end
 	end) or discharscripts
 	flingchangestate=t.flingchangestate or flingchangestate
+	flingmethod=(sethiddenproperty and t.flingmethod) or flingmethod
+	instantfling=(sethiddenproperty and t.instantfling) or instantfling
 	respawntp=t.respawntp or respawntp
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
 	hidedeatheffect=t.hidedeatheffect or hidedeatheffect
-	permadeath=(replicatesignal and t.permadeath) or permadeath
-	refit=(permadeath and t.refit) or refit
 end
 
 local returnDelta=function() --deltaTime cuz im lazy asf
 	return deltaTime
 end
+
+local fpdh=insGet(ws,"FallenPartsDestroyHeight")
 
 local cleantable={}
 local onstopfunc=nil
@@ -488,9 +492,6 @@ end
 local stopreanimate=function() 
 	if c then
 		c=nil
-		if permadeath then
-			replicatesignal(cdsb)
-		end
 		for i,v in next,cframes do
 			local p=i.v
 			if p then
@@ -525,6 +526,7 @@ local stopreanimate=function()
 			onstopfunc()
 			onstopfunc=nil
 		end
+		insSet(ws,"FallenPartsDestroyHeight",fpdh)
 		insSet(uis,"MouseBehavior",enumMD)
 		onnewcamera()
 		return true
@@ -541,7 +543,8 @@ local reanimate=function()
 	local ctrlclicktp = ctrltp --makes you teleport where u point ur mouse cursor at when click and hold ctrl down
 	local clickfling = clickfling --makes you fling the person you clicked when its available to do so
 	local flingvel = v3(15000,16000,15000) --the rotation velocity that ur character will have while flinging
-
+	local dropvel = v3(0,50,0)
+	
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
 	if not (c and IsDescendantOf(c,ws)) then return end
@@ -605,7 +608,6 @@ local reanimate=function()
 		velYdelta=insGet(ws,"Gravity")*0.025
 	end))
 
-	local fpdh=insGet(ws,"FallenPartsDestroyHeight")
 	novoid=novoid and (fpdh+1)
 
 	local Yvel=0
@@ -613,6 +615,7 @@ local reanimate=function()
 	local pos=cfGet(cfr,"Position")
 	cfr=cfl(pos,pos+cfGet(cfr,"LookVector")*v3_101)
 	local primarypart=nil
+	local dropprimarypart=nil
 	local shiftlock=false
 	local firstperson=false
 	local xzvel=v3_0
@@ -790,6 +793,28 @@ local reanimate=function()
 	local getAccWeldFromMesh=function(m,t)
 		return getPartJoint(getPartFromMesh(m,t))
 	end
+	
+	local sethatstate=emptyfunction
+	if flingmethod==2 then
+		sethatstate=function(i,v)
+			if pcall(insSet,i,"BackendAccoutrementState",v) then
+				sethatstate=function(i,v)
+					insSet(i,"BackendAccoutrementState",v)
+				end
+			else
+				if sethiddenproperty then
+					sethatstate=function(i,v)
+						sethiddenproperty(i,"BackendAccoutrementState",v)
+					end
+				elseif setscriptable then
+					sethatstate=function(i,v)
+						setscriptable(i,"BackendAccoutrementState",true)
+						insSet(i,"BackendAccoutrementState",v)
+					end
+				end
+			end
+		end
+	end
 
 	local raycastparams=rp()
 	raycastparams.FilterType=e.RaycastFilterType.Exclude
@@ -832,9 +857,6 @@ local reanimate=function()
 				Disconnect(con1)
 				if t.p==p then
 					t.p=nil
-				end
-				if refit and c then
-					replicatesignal(cdsb)
 				end
 			end
 		end)
@@ -917,11 +939,38 @@ local reanimate=function()
 			end
 		end
 	end
+	local onaccoutrements=function(v)
+		if c and IsA(v,"Accoutrement") and IsDescendantOf(c,ws) then
+			sethatstate(v,0)
+			local con0=Connect(insGet(v,"Changed"),function(p)
+				sethatstate(v,0)
+			end)
+			
+			local handle=FindFirstChildWhichIsA(v,"BasePart")
+			if handle then
+				insSet(handle,"AssemblyLinearVelocity",dropvel)
+				insSet(handle,"AssemblyAngularVelocity",v3_0)
+				Connect(GetPropertyChangedSignal(handle,"CanCollide"),function()
+					print(v,"-",insGet(handle,"CanCollide"))
+				end)
+			end
+			
+			if dropprimarypart then
+				local con1=nil
+				con1=Connect(insGet(dropprimarypart,"AncestryChanged"),function()
+					Disconnect(con0)
+					Disconnect(con1)
+					
+					sethatstate(v,4)
+				end)
+			end
+		end
+	end
 
 	local simradv=0
 	local enumH=e.CoreGuiType.Health
 	local onplayer=function(v)
-		simradv=simradv+1000
+		simradv+=1000
 		local islp=v==lp
 		local lastc=nil
 		local oncharacter=function()
@@ -940,111 +989,167 @@ local reanimate=function()
 					local hrp=timeQueryDescendants(newc,">BasePart#HumanoidRootPart",10)[1]
 					if not (hrp and c and IsDescendantOf(newc,ws)) then return end
 					c=newc
-					local fi,fv=next(flingtable)
-					if fi then
-						if permadeath and not pdloadedtime then
-							replicatesignal(cdsb)
-							pdloadedtime=osclock()+rst
-						end
-						if flingchangestate==3 then
+					if flingmethod==1 then
+						local fi,fv=next(flingtable)
+						if fi then
 							local hum=FindFirstChildOfClass(c,"Humanoid")
-							if hum then
-								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+							if instantfling then
 								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+							else
+								if hum then
+									if flingchangestate==3 then
+										insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+										insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+									elseif flingchangestate==1 then
+										insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+									elseif flingchangestate==2 then
+										insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+									end
+								end
 							end
-						elseif flingchangestate==1 then
-							local hum=FindFirstChildOfClass(c,"Humanoid")
-							if hum then
-								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+							for i,v in next,tclone(flingtable) do
+								if not c then
+									return
+								end
+								local startpos=insGet(i,"Position")
+								local stoptime=sine+3
+								while Wait(heartbeat) do
+									if sine>stoptime then
+										break
+									end
+									if insGet(i,"Anchored") or not IsDescendantOf(i,ws) then
+										break
+									end
+									if vmagnitude(startpos-insGet(i,"Position"))>200 then
+										break
+									end
+									local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
+									if novoid and (cfGet(tcf,"Y")<novoid) then
+										tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
+									end
+									if instantfling then
+										local tcf=insGet(i,"CFrame")
+										if novoid and (cfGet(tcf,"Y")<novoid) then
+											tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
+										end
+										insSet(hum,"PlatformStand",true)
+										insSet(hrp,"CFrame",tcf)
+										insSet(hrp,"AssemblyLinearVelocity",v3_0)
+										insSet(hrp,"AssemblyAngularVelocity",v3_0)
+										insGet(hum,"Move")(hum,v3_nan)
+										sethiddenproperty(hrp,"PhysicsRepRootPart",i)
+									else
+										local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
+										if novoid and (cfGet(tcf,"Y")<novoid) then
+											tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
+										end
+										insSet(hrp,"CFrame",tcf)
+										insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
+										insSet(hrp,"AssemblyAngularVelocity",flingvel)
+									end
+								end
+								if v then
+									Destroy(v)
+								end
+								flingtable[i]=nil
 							end
-						elseif flingchangestate==2 then
-							local hum=FindFirstChildOfClass(c,"Humanoid")
-							if hum then
-								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+							if instantfling then
+								insSet(hum,"PlatformStand",false)
+								insGet(hum,"Move")(hum,v3_0)
+								if hrp then
+									sethiddenproperty(hrp,"PhysicsRepRootPart",nil)
+								end
 							end
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							insSet(hrp,"CFrame",cfr)
+							twait(0.25)
 						end
-						for i,v in next,tclone(flingtable) do
-							if not c then
-								return
-							end
-							local startpos=insGet(i,"Position")
-							local stoptime=sine+3
-							while true do
-								twait()
-								if sine>stoptime then
-									break
-								end
-								if insGet(i,"Anchored") or not IsDescendantOf(i,ws) then
-									break
-								end
-								if vmagnitude(startpos-insGet(i,"Position"))>200 then
-									break
-								end
-								local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
-								if novoid and (cfGet(tcf,"Y")<novoid) then
-									tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
-								end
-								insSet(hrp,"CFrame",tcf)
-								insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
-								insSet(hrp,"AssemblyAngularVelocity",flingvel)
-							end
-							if v then
-								Destroy(v)
-							end
-							flingtable[i]=nil
-						end
-						insSet(hrp,"AssemblyLinearVelocity",v3_0)
-						insSet(hrp,"AssemblyAngularVelocity",v3_0)
-						insSet(hrp,"CFrame",cfr)
-						twait(0.25)
 					end
-					if respawntp==0 then
-						twait()
-					elseif respawntp==1 then
-						local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
-						local dir=nil
-						local poscheck=true
-						while poscheck do
-							poscheck=false
-							for i,v in next,rootparts do
-								local diff=(startpos-insGet(v,"Position"))*v3_101
+					if flingmethod==1 then
+						if respawntp==0 then
+							twait()
+						elseif respawntp==1 then
+							local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
+							local dir=nil
+							local poscheck=true
+							while poscheck do
+								poscheck=false
+								for i,v in next,rootparts do
+									local diff=(startpos-insGet(v,"Position"))*v3_101
+									if vmagnitude(diff)<10 then
+										poscheck=true
+										dir=dir or (vnormalize(diff)*3)
+										startpos+=dir
+									end
+								end
+								local diff=(startpos-pos)*v3_101
 								if vmagnitude(diff)<10 then
 									poscheck=true
 									dir=dir or (vnormalize(diff)*3)
-									startpos=startpos+dir
+									startpos+=dir
 								end
 							end
-							local diff=(startpos-pos)*v3_101
-							if vmagnitude(diff)<10 then
-								poscheck=true
-								dir=dir or (vnormalize(diff)*3)
-								startpos=startpos+dir
+							startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
+							insSet(hrp,"CFrame",startpos)
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							twait(0.25)
+						elseif respawntp==2 then
+							insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							twait(0.25)
+						elseif respawntp==3 then
+							local t=osclock()+0.25
+							local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
+							while Wait(heartbeat) do
+								insSet(hrp,"CFrame",startcf)
+								insSet(hrp,"AssemblyLinearVelocity",v3_0)
+								insSet(hrp,"AssemblyAngularVelocity",v3_0)
+								if osclock()>t then
+									break
+								end
 							end
 						end
-						startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
-						insSet(hrp,"CFrame",startpos)
-						insSet(hrp,"AssemblyLinearVelocity",v3_0)
-						insSet(hrp,"AssemblyAngularVelocity",v3_0)
-						twait(0.25)
-					elseif respawntp==2 then
-						insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
-						insSet(hrp,"AssemblyLinearVelocity",v3_0)
-						insSet(hrp,"AssemblyAngularVelocity",v3_0)
-						twait(0.25)
-					elseif respawntp==3 then
+					elseif flingmethod==2 then
+						insSet(ws,"FallenPartsDestroyHeight",nan)
+						dropprimarypart=QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or hrp or insGet(c,"PrimaryPart")
+						local hum=FindFirstChildOfClass(c,"Humanoid")
 						local t=osclock()+0.25
-						if pdloadedtime and pdloadedtime>t then
-							t=pdloadedtime
+						local startcf=cf(pos*v3_101+v3_010*(fpdh-0.7))
+						if hum then
+							local isR6=insGet(hum,"RigType")==e.HumanoidRigType.R6
+							for i,v in next,insGet(hum,"GetPlayingAnimationTracks")(hum) do
+								insGet(v,"Stop")(v)
+							end
+							local anim=i("Animation")
+							insSet(anim,"AnimationId",isR6 and "rbxassetid://313762630" or "rbxassetid://855685476")
+							insSet(anim,"Name",rs())
+							insSet(anim,"Parent",c)
+							local animtrack=insGet(hum,"LoadAnimation")(hum,anim)
+							if animtrack then
+								insSet(animtrack,"Looped",true)
+								insSet(animtrack,"Priority",e.AnimationPriority.Action4)
+								insGet(animtrack,"Play")(animtrack,0,5,0)
+								insSet(animtrack,"TimePosition",1)
+							end
+							if not isR6==e.HumanoidRigType.R15 then
+								startcf=cfMul(startcf,angles(0.3490658503988659,0,0))
+							end
 						end
-						local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
-						while twait() do
+						while Wait(heartbeat) do
+							if not hrp then
+								break
+							end
 							insSet(hrp,"CFrame",startcf)
-							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyLinearVelocity",dropvel)
 							insSet(hrp,"AssemblyAngularVelocity",v3_0)
 							if osclock()>t then
 								break
 							end
 						end
+						insSet(ws,"FallenPartsDestroyHeight",fpdh)
 					end
 					if newc~=c then
 						return
@@ -1053,12 +1158,6 @@ local reanimate=function()
 					primarypart=insGet(newc,"PrimaryPart") or hrp
 					if hidedeatheffect and GetCoreGuiEnabled(sg,enumH) then
 						SetCoreGuiEnabled(sg,enumH,false)
-					end
-					if pdloadedtime then
-						if (osclock()<pdloadedtime) then
-							twait(pdloadedtime-osclock())
-						end
-						pdloadedtime=nil
 					end
 					if breakjointsmethod==4 then
 						insGet(newc,"BreakJoints")(newc)
@@ -1085,9 +1184,17 @@ local reanimate=function()
 					else
 						insGet(newc,"BreakJoints")(newc)
 					end
-					cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
-					for i,v in next,QueryDescendants(newc,"Attachment") do
-						ondes(v)
+					if flingmethod==1 then
+						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
+						for i,v in next,QueryDescendants(newc,"Attachment") do
+							ondes(v)
+						end
+					elseif flingmethod==2 then
+						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),function(v) ondes(v) onaccoutrements(v) end)
+						for i,v in next,QueryDescendants(newc,"Attachment,Accoutrement") do
+							ondes(v)
+							onaccoutrements(v)
+						end
 					end
 				else
 					local hrp=timeQueryDescendants(newc,">BasePart#HumanoidRootPart",10)
@@ -1101,7 +1208,7 @@ local reanimate=function()
 		oncharacter()
 	end
 	tinsert(cleantable,Connect(insGet(plrs,"PlayerRemoving"),function(v)
-		simradv=simradv-1000
+		simradv-=1000
 		local charcon=charcons[v]
 		if charcon then
 			Disconnect(charcon)
@@ -1124,7 +1231,8 @@ local reanimate=function()
 			end
 		end
 	end
-
+	
+	local blockedKeys={}
 	local mradN05=-0.008726646259971648
 	local pi2=3.141592653589793/2-0.0001
 	local npi2=-pi2
@@ -1202,6 +1310,9 @@ local reanimate=function()
 			return
 		end
 		a=insGet(a,"KeyCode")
+		if blockedKeys[a] then
+			return
+		end
 		if a==keyW then
 			Wpressed=true
 			refreshKeyboardMovement()
@@ -1357,7 +1468,7 @@ local reanimate=function()
 		local sY=insGet(mouse,"ViewSizeY")
 		local isSmallScreen=min(sX,sY)<=500
 
-		sY=sY+insGet(gs,"TopbarInset").Height
+		sY+=insGet(gs,"TopbarInset").Height
 
 		thumbstickEndX=sX*0.4
 		thumbstickStartY=(sY+0)*0.333
@@ -1425,9 +1536,6 @@ local reanimate=function()
 		local targetpart=QueryDescendants(target,">BasePart#HumanoidRootPart")[1] or QueryDescendants(target,">BasePart#Torso")[1] or QueryDescendants(target,">BasePart#UpperTorso")[1]
 		if (not targetpart) or (flingtable[targetpart]~=nil) then
 			return false
-		end
-		if permadeath then
-			replicatesignal(cdsb)
 		end
 		if highlightflingtargets then
 			local h=i("Highlight")
@@ -1524,7 +1632,7 @@ local reanimate=function()
 			onground=raycastresult.Distance<hhOff1
 			if onground then
 				Yvel=0
-				pos=pos+v3_010*(v3Get(raycastresult.Position,"Y")+hhOff-v3Get(pos,"Y"))*min(delta*20,1)
+				pos+=v3_010*(v3Get(raycastresult.Position,"Y")+hhOff-v3Get(pos,"Y"))*min(delta*20,1)
 				if jumpingInput and (jumpPower>0) then
 					Yvel=jumpPower
 					onground=false
@@ -1534,7 +1642,7 @@ local reanimate=function()
 				raycastresult=v3Get(raycastresult.Position,"Y")
 				if v3Get(pos,"Y")+Yvel*delta<raycastresult then
 					Yvel=0
-					pos=pos+v3_010*(raycastresult+hhOff-v3Get(pos,"Y"))
+					pos+=v3_010*(raycastresult+hhOff-v3Get(pos,"Y"))
 				end
 			end
 		else
@@ -1553,9 +1661,9 @@ local reanimate=function()
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsIdle()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150)
 						cframes[rootpart]=cfr
@@ -1563,7 +1671,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150)
 						cframes[rootpart]=cfr
@@ -1574,16 +1682,16 @@ local reanimate=function()
 				else
 					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
-						pos=pos+xzvel*delta
+						pos+=xzvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150)
 						cframes[rootpart]=cfr
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsWalk()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+(xzvel+v3_010*Yvel)*delta
+						pos+=(xzvel+v3_010*Yvel)*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150)
 						cframes[rootpart]=cfr
@@ -1591,7 +1699,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else 
-						pos=pos+(xzvel+v3_010*Yvel)*delta
+						pos+=(xzvel+v3_010*Yvel)*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150)
 						cframes[rootpart]=cfr
@@ -1609,9 +1717,9 @@ local reanimate=function()
 					insSet(cam,"CFrame",cfMul(camcf,camoff))
 					lerpsIdle()
 					noYvelTime=min(noYvelTime+delta*0.3,1)
-					xzvel=xzvel*(1-noYvelTime)
+					xzvel*=(1-noYvelTime)
 				elseif Yvel>0 then
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfl(pos,pos+camcfLV*v3_101)
 					camcf=cfAdd(camrot,pos+v3_0150)
 					cframes[rootpart]=cfr
@@ -1619,7 +1727,7 @@ local reanimate=function()
 					lerpsJump()
 					noYvelTime=0
 				else
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfl(pos,pos+camcfLV*v3_101)
 					camcf=cfAdd(camrot,pos+v3_0150)
 					cframes[rootpart]=cfr
@@ -1639,9 +1747,9 @@ local reanimate=function()
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsIdle()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1649,7 +1757,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1660,16 +1768,16 @@ local reanimate=function()
 				else
 					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
-						pos=pos+xzvel*delta
+						pos+=xzvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 						cframes[rootpart]=cfr
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsWalk()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+(xzvel+v3_010*Yvel)*delta
+						pos+=(xzvel+v3_010*Yvel)*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1677,7 +1785,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else
-						pos=pos+(xzvel+v3_010*Yvel)*delta
+						pos+=(xzvel+v3_010*Yvel)*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1695,9 +1803,9 @@ local reanimate=function()
 					insSet(cam,"CFrame",cfMul(camcf,camoff))
 					lerpsIdle()
 					noYvelTime=min(noYvelTime+delta*0.3,1)
-					xzvel=xzvel*(1-noYvelTime)
+					xzvel*=(1-noYvelTime)
 				elseif Yvel>0 then
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfl(pos,pos+camcfLV*v3_101)
 					camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 					cframes[rootpart]=cfr
@@ -1705,7 +1813,7 @@ local reanimate=function()
 					lerpsJump()
 					noYvelTime=0
 				else
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfl(pos,pos+camcfLV*v3_101)
 					camcf=cfAdd(camrot,pos+v3_0150+camcfRV*1.75+camcfLV*cammag)
 					cframes[rootpart]=cfr
@@ -1725,9 +1833,9 @@ local reanimate=function()
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsIdle()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1735,7 +1843,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else
-						pos=pos+v3_010*Yvel*delta
+						pos+=v3_010*Yvel*delta
 						cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1746,16 +1854,16 @@ local reanimate=function()
 				else
 					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
-						pos=pos+xzvel*delta
+						pos+=xzvel*delta
 						cfr=cfAdd(Lerp(cfGet(cfr,"Rotation"),cfl(v3_0,xzvel),deltaTime),pos)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 						cframes[rootpart]=cfr
 						insSet(cam,"CFrame",cfMul(camcf,camoff))
 						lerpsWalk()
 						noYvelTime=min(noYvelTime+delta*0.3,1)
-						xzvel=xzvel*(1-noYvelTime)
+						xzvel*=(1-noYvelTime)
 					elseif Yvel>0 then
-						pos=pos+(xzvel+(v3_010*Yvel))*delta
+						pos+=(xzvel+(v3_010*Yvel))*delta
 						cfr=cfAdd(Lerp(cfGet(cfr,"Rotation"),cfl(v3_0,xzvel),deltaTime),pos)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1763,7 +1871,7 @@ local reanimate=function()
 						lerpsJump()
 						noYvelTime=0
 					else
-						pos=pos+(xzvel+(v3_010*Yvel))*delta
+						pos+=(xzvel+(v3_010*Yvel))*delta
 						cfr=cfAdd(Lerp(cfGet(cfr,"Rotation"),cfl(v3_0,xzvel),deltaTime),pos)
 						camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 						cframes[rootpart]=cfr
@@ -1781,9 +1889,9 @@ local reanimate=function()
 					insSet(cam,"CFrame",cfMul(camcf,camoff))
 					lerpsIdle()
 					noYvelTime=min(noYvelTime+delta*0.3,1)
-					xzvel=xzvel*(1-noYvelTime)
+					xzvel*=(1-noYvelTime)
 				elseif Yvel>0 then
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
 					camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 					cframes[rootpart]=cfr
@@ -1791,7 +1899,7 @@ local reanimate=function()
 					lerpsJump()
 					noYvelTime=0
 				else
-					pos=pos+v3_010*Yvel*delta
+					pos+=v3_010*Yvel*delta
 					cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
 					camcf=cfAdd(camrot,pos+v3_0150+camcfLV*cammag)
 					cframes[rootpart]=cfr
@@ -2062,6 +2170,9 @@ local reanimate=function()
 	local setCameraMoveable=function(v) --make camera movement to true or false
 		cameraMoveable=v
 	end
+	local enableKeyCode=function(a,b) --enable/disable specific KeyCode (for reanimation)
+		blockedKeys[a]=b
+	end
 
 	return {
 		characters=characters,
@@ -2099,36 +2210,9 @@ local reanimate=function()
 		isFirstPerson=isFirstPerson,
 		isOnGround=isOnGround,
 		isWalking=isWalking,
-		setHipHeight=setHipHeight
+		setHipHeight=setHipHeight,
+		enableKeyCode=enableKeyCode
 	}
 end
 
-local pdfunc=function()
-	replicatesignal(cdsb)
-	pdloadedtime=osclock()+rst
-	local lastc=nil
-	local hdied=function()
-		if not c then
-			replicatesignal(cdsb)
-			pdloadedtime=osclock()+rst
-		end
-	end
-	Connect(GetPropertyChangedSignal(lp,"Character"),function()
-		local c=lp.Character
-		if c and c~=lastc then
-			lastc=c
-			replicatesignal(cdsb)
-			pdloadedtime=osclock()+rst
-			while lastc==c do
-				local h=FindFirstChildOfClass(c,"Humanoid")
-				if h then
-					Connect(insGet(h,"Died"),hdied)
-					break
-				end
-				Wait(preanimation)
-			end
-		end
-	end)
-end
-
-return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=pdfunc,accessoryinfos=accessoryinfos}
+return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction,accessoryinfos=accessoryinfos}
