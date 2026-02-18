@@ -103,10 +103,12 @@ local v2Get=getMetamethodFromErrorStack(v2(),function(a,b) return a[b] end,funct
 --its faster to multiply X and Y of vector2 than to multiply vector2 and then get X and Y from it
 
 --no need to index instances every time to call their functions
+local GetObjects=insGet(game,"GetObjects")
 local Clone=insGet(game,"Clone")
 local ClearAllChildren=insGet(game,"ClearAllChildren")
 local Destroy=insGet(game,"Destroy")
 local IsA=insGet(game,"IsA")
+local FindFirstChild=insGet(game,"FindFirstChild")
 local FindFirstChildOfClass=insGet(game,"FindFirstChildOfClass")
 local FindFirstChildWhichIsA=insGet(game,"FindFirstChildWhichIsA")
 local GetChildren=insGet(game,"GetChildren")
@@ -403,7 +405,7 @@ local fetchaccessories=function(c,t)
 		if accessory then
 			accessory=Clone(accessory)
 		else
-			accessory=insGet(game,"GetObjects")(game,"rbxassetid://"..a)
+			accessory=GetObjects(game,"rbxassetid://"..a)
 			if typeof(accessory)=="table" then
 				accessory=accessory[1]
 			end
