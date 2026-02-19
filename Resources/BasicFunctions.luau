@@ -1,8 +1,7 @@
+--!optimize 2
 --[==[
 	Extremely "optimized" module
 ]==]
-
-local BasicFunctions={}
 
 local game=game
 local next=next
@@ -119,7 +118,6 @@ Maid.DoCleaning=function(self)
 end
 Maid.Disconnect=Maid.DoCleaning
 Maid.Destroy=Maid.DoCleaning
-BasicFunctions.Maid=Maid
 
 --[==[
 	SignalPlus v3.7.1
@@ -282,18 +280,16 @@ end
 local NewSignal=function()
 	return setmetatable({},Signal)
 end
-BasicFunctions.NewSignal=NewSignal
 
 --[==[
 	BetterValue (I wrote ts)
 ]==]
 local ValueInstance={}
-ValueInstance.Destroyed=false
 ValueInstance.__index=function(self,a)
 	return rawget(self,"_data")[a]
 end
 ValueInstance.__newindex=function(self,a,b)
-	if not ValueInstance.Destroyed then
+	if not ValueInstance._destroyed then
 		local key=rawget(self,"_data")
 		local old=key[a]
 		if old~=b then
@@ -302,20 +298,26 @@ ValueInstance.__newindex=function(self,a,b)
 		end
 	end
 end
+ValueInstance.GetPropertyChangedSignal=function(self,property)
+	if property == "Value" and not self._destroyed then
+		return self.Changed
+	end
+end
+ValueInstance.Destroy=function(self)
+	if not self._destroyed then
+		self._destroyed=true
+		self._data=nil
+		self.Changed:DisconnectAll()
+	end
+end
 local DefaultValues={StringValue="",BoolValue=false,BrickColorValue=bc("Medium stone grey"),CFrameValue=cf_0,Color3Value=c3(),IntValue=0,NumberValue=0,ObjectValue=nil,Vector3Value=v3_0}
-local NewValue=function(Class)
+local CreateValue=function(Class)
 	local Value=DefaultValues[Class]
 	if Value then
-		local Instance={}
-		Instance._data={Value=Value}
-		Instance.Changed=NewSignal()
-		Instance.GetPropertyChangedSignal=function(self,property) if not ValueInstance.Destroyed then if self[property] then return self.Changed end end end
-		Instance.Destroy=function(self) if not ValueInstance.Destroyed then ValueInstance.Destroyed=true self.Changed:DisconnectAll() end end
-		return setmetatable(Instance,ValueInstance)
+		return setmetatable({_data={Value=Value},Changed=NewSignal(),_destroyed=false},ValueInstance)
 	end
 	return error("Nah")
 end
-BasicFunctions.NewValue=NewValue
 
 --[==[
 	BoatTween
@@ -1410,29 +1412,10 @@ Boat.Create=function(self,Object,Data)
 	end
 	return TweenObject
 end
-BasicFunctions.TweenCreate=Boat.Create
 
 --[==[
 	Main
 ]==]
-BasicFunctions.AddDebris=function(Object,DestroyTime)
-	DestroyTime=osclock()+DestroyTime
-	while osclock()<=DestroyTime do
-		Wait(Heartbeat)
-	end
-	if Object then
-		Destroy(Object)
-	end
-end
-BasicFunctions.TorusRandom=function(R,Y,r)
-	local theta=mrandom()*2*3.141592653589793
-	local phi=mrandom()*2*3.141592653589793
-	local x=(R+r*cos(phi))*cos(theta)
-	local y=Y or r*sin(phi)
-	local z=(R+r*cos(phi))*sin(theta)
-	return x,y,z
-end
-
 local Effects={}
 Effects.__index=Effects
 local Settings={
@@ -1843,6 +1826,14 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		end
 	end
 end
-BasicFunctions.Effects=Effects
 
-return BasicFunctions
+return {
+	Maid=Maid,
+	TweenFunctions=TweenFunctions,
+	TweenCreate=Boat.Create,
+	AddDebris=AddDebris,
+	TorusRandom=TorusRandom,
+	CreateValue=CreateValue,
+	QuadraticBezier=QuadraticBezier,
+	Effects=Effects
+}
