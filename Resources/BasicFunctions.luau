@@ -285,16 +285,19 @@ end
 	BetterValue (I wrote ts)
 ]==]
 local ValueInstance={}
+local DefaultValues={StringValue="",BoolValue=false,BrickColorValue=bc("Medium stone grey"),CFrameValue=cf_0,Color3Value=c3(),IntValue=0,NumberValue=0,ObjectValue=nil,Vector3Value=v3_0}
 ValueInstance.__index=function(self,a)
 	return rawget(self,"_data")[a]
 end
 ValueInstance.__newindex=function(self,a,b)
-	if not ValueInstance._destroyed then
-		local key=rawget(self,"_data")
-		local old=key[a]
-		if old~=b then
-			key[a]=b
-			self.Changed:Fire(a,b)
+	if not self._destroyed then
+		if typeof(b)==self._type then
+			local key=rawget(self,"_data")
+			local old=key[a]
+			if old~=b then
+				key[a]=b
+				self.Changed:Fire(a,b)
+			end
 		end
 	end
 end
@@ -310,11 +313,10 @@ ValueInstance.Destroy=function(self)
 		self.Changed:DisconnectAll()
 	end
 end
-local DefaultValues={StringValue="",BoolValue=false,BrickColorValue=bc("Medium stone grey"),CFrameValue=cf_0,Color3Value=c3(),IntValue=0,NumberValue=0,ObjectValue=nil,Vector3Value=v3_0}
 local CreateValue=function(Class)
 	local Value=DefaultValues[Class]
 	if Value then
-		return setmetatable({_data={Value=Value},Changed=NewSignal(),_destroyed=false},ValueInstance)
+		return setmetatable({_data={Value=Value},Changed=NewSignal(),_type=Value==nil and "Instance" or typeof(Value),_destroyed=false},ValueInstance)
 	end
 	return error("Nah")
 end
@@ -1328,6 +1330,8 @@ Boat.Create=function(self,Object,Data)
 		StoppedEvent:DisconnectAll()
 		ResumedEvent:DisconnectAll()
 		PlayedEvent:DisconnectAll()
+		tclear(TweenData)
+		tclear(TweenObject)
 		TweenObject=nil
 	end
 	local CurrentlyReversing=false
@@ -1478,65 +1482,64 @@ Effects.Destroy=function(self)
 end
 
 Effects.LightningStrike=function(self,Color,Size,Start,End,Offset,Segments,Alpha)
-	if self.__destroyall then return end
-	if Effects._visualcount >= Settings.EffectLimit then return end
-	local Model=new("Model")
-	local Points={}
-	local Maid=Maid.new()
-	Maid:GiveTask(Model)
-	Effects._visualcount+=1
-	for i=0,Segments do
-		if i==0 then
-			local Position=LerpTypes.Vector3(Start,End,i/Segments)
+	if not self.__destroyall and Effects._visualcount>=Settings.EffectLimit then
+		local Folder=new("Folder")
+		local Points={}
+		local Maid=Maid.new()
+		Maid:GiveTask(Folder)
+		Effects._visualcount+=1
+		for i=0,Segments do
+			local Position=nil
+			if i==0 then
+				Position=LerpTypes.Vector3(Start,End,i/Segments)
+			elseif i<Segments then
+				local Off=v3(rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100)
+				Position=LerpTypes.Vector3(Start,End,i/Segments)+Off
+			else
+				Position=LerpTypes.Vector3(Start,End,1)
+			end
 			tinsert(Points,Position)
-		elseif i<Segments then
-			local Off=Vector3.new(rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100)
-			local Position=LerpTypes.Vector3(Start,End,i/Segments)
-			tinsert(Points,Position+Off)
-		else
-			local Position=LerpTypes.Vector3(Start,End,1)
-			tinsert(Points,Position)
 		end
+		Folder.Parent=Settings.Container
+		for i,v in next,Points do
+			local Point=v
+			local NextPoint=Points[i+1]
+			if NextPoint then
+				local NextPoint=NextPoint
+				local Part=new("Part")
+				local StartSizeStartTransparency=Part.Size,1
+				local EndSize,EndTransparency=v3(Size,Size,v3m(Point-NextPoint)),0
+				local Elapse=0
+				local StartTime=osclock()
+				Part.Material=enum.Material.Neon;Part.Color=Color;Part.Size=v3(0,0,vmagnitude(Point-NextPoint));Part.CFrame=cfl((Point+NextPoint)/2,NextPoint);Part.Transparency=1;Part.CanCollide=false;Part.CanQuery=false;Part.CanTouch=false;Part.AudioCanCollide=false;Part.Anchored=true;Part.Massless=true;Part.CastShadow=false;Part.Parent=Folder
+				Maid:GiveTask(Connect(Heartbeat,function()
+					local DeltaTime=osclock()-StartTime
+					Elapse=DeltaTime/Alpha
+					if Elapse<=1 then
+						local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
+						local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
+						Part.Size=Size
+						Part.Transparency=Transparency
+					elseif Elapse>1 and Elapse<=2 then
+						local Elapse=2-Elapse
+						local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
+						local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
+						Part.Size=Size
+						Part.Transparency=Transparency
+					end
+				end))
+			end
+		end
+		defer(function()
+			local StopTime=osclock()+Alpha*2
+			while osclock()<=StopTime do
+				Wait(Heartbeat)
+			end
+			Maid:DoCleaning()
+			Effects._visualcount-=1
+		end)
+		return Points[Segments+1]
 	end
-	Model.Parent=Settings.Container
-	for i,v in next,Points do
-		local Point=v
-		local NextPoint=Points[i+1]
-		if NextPoint then
-			local NextPoint=NextPoint
-			local Part=new("Part",Model)
-			local StartSizeStartTransparency=Part.Size,1
-			local EndSize,EndTransparency=v3(Size,Size,v3m(Point-NextPoint)),0
-			local Elapse=0
-			local StartTime=osclock()
-			Part.Material=enum.Material.Neon;Part.Color=Color;Part.Size=v3(0,0,vmagnitude(Point-NextPoint));Part.CFrame=cfl((Point+NextPoint)/2,NextPoint);Part.Transparency=1;Part.CanCollide=false;Part.CanQuery=false;Part.CanTouch=false;Part.AudioCanCollide=false;Part.Anchored=true;Part.Massless=true;Part.CastShadow=false
-			Maid:GiveTask(Heartbeat:Connect(function()
-				local DeltaTime=osclock()-StartTime
-				Elapse=DeltaTime/Alpha
-				if Elapse<=1 then
-					local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
-					local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
-					Part.Size=Size
-					Part.Transparency=Transparency
-				elseif Elapse>1 and Elapse<=2 then
-					local Elapse=2-Elapse
-					local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
-					local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
-					Part.Size=Size
-					Part.Transparency=Transparency
-				end
-			end))
-		end
-	end
-	defer(function()
-		local StopTime=osclock()+Alpha*2
-		while osclock()<=StopTime do
-			Heartbeat:Wait()
-		end
-		Maid:DoCleaning()
-		Effects._visualcount-=1
-	end)
-	return Points[Segments+1]
 end
 
 Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency)
@@ -1572,7 +1575,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 			if SpecialMesh then
 				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
 				SpecialMesh.Scale=Size
-				EffectMaid:GiveTask(Heartbeat:Connect(function()
+				EffectMaid:GiveTask(Connect(Heartbeat,function()
 					local DeltaTime=osclock()-StartTime
 					Elapse=DeltaTime/Alpha
 					if Reverse then
@@ -1686,7 +1689,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 			if SpecialMesh then
 				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
 				SpecialMesh.Scale=Size
-				EffectMaid:GiveTask(Heartbeat:Connect(function()
+				EffectMaid:GiveTask(Connect(Heartbeat,function()
 					local DeltaTime=osclock()-StartTime
 					Elapse=DeltaTime/Alpha
 					if Reverse then
