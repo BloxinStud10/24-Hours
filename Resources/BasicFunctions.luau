@@ -1799,15 +1799,12 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		local SpecialMesh=FindFirstChildOfClass(EffectPart,"SpecialMesh")
 		if IsA(EffectPart,"BasePart") then
 			if SpecialMesh then
-				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
-				SpecialMesh.Scale=Size
+				EffectPart.Size=Size;EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
 				local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
-				local MeshObject=Boat:Create(SpecialMesh,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal={Scale=PropTable.Size}})
 				local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
 				TweenObject:Play()
 				TransparencyObject:Play()
 				EffectMaid:GiveTask(TweenObject)
-				EffectMaid:GiveTask(MeshObject)
 				EffectMaid:GiveTask(TransparencyObject)
 				TweenObject.Completed:Once(function()
 					EffectMaid:DoCleaning()
