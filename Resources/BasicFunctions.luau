@@ -1802,7 +1802,7 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
 				SpecialMesh.Scale=Size
 				local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
-				local MeshObject=BoatTween:Create(SpecialMesh,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal={Scale=PropTable.Size}})
+				local MeshObject=Boat:Create(SpecialMesh,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal={Scale=PropTable.Size}})
 				local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
 				TweenObject:Play()
 				TransparencyObject:Play()
