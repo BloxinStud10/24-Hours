@@ -1,4 +1,5 @@
 --!optimize 2
+--!native
 --[==[
 	Extremely "optimized" module
 ]==]
@@ -16,13 +17,17 @@ local xpcall=xpcall
 local setmetatable=setmetatable
 local osclock=os.clock
 local new=Instance.new
+local tcreate=table.create
+local tclone=table.clone
 local tinsert=table.insert
+local tremove=table.remove
 local tclear=table.clear
 local tsort=table.sort
 local twait=task.wait
 local defer=task.defer
 local spawn=task.spawn
 local tcancel=task.cancel
+local ccreate=coroutine.create
 local crunning=coroutine.running
 local cyield=coroutine.yield
 local cstatus=coroutine.status
@@ -37,8 +42,9 @@ local GetChildren=game.GetChildren
 local Workspace=FindFirstChildOfClass(game,"Workspace")
 local RunService=FindFirstChildOfClass(game,"RunService")
 local PlayerService=FindFirstChildOfClass(game,"Players")
-local Heartbeat=RunService.Heartbeat
 
+local BulkMoveTo=Workspace.BulkMoveTo
+local Heartbeat=RunService.Heartbeat
 local Wait=Heartbeat.Wait
 local Connect=Heartbeat.Connect
 local Disconnect=Connect(GetPropertyChangedSignal(game,"CreatorId"),typeof).Disconnect
@@ -51,6 +57,8 @@ local sfind=string.find
 local bc=BrickColor.new
 local v3=vector.create
 local vmagnitude=vector.magnitude
+local vnormalize=vector.normalize
+local vcross=vector.cross
 local vlerp=vector.lerp
 local cf=CFrame.new
 local angles=CFrame.fromEulerAnglesXYZ
@@ -1418,6 +1426,144 @@ Boat.Create=function(self,Object,Data)
 end
 
 --[==[
+	ObjectCache
+]==]
+local FAR_AWAY_CFRAME=cf(2^24,2^24,2^24)
+local EXPAND_BY_AMOUNT=50
+
+local MovingParts=tcreate(10_000)
+local MovingCFrames=tcreate(10_000)
+
+local ScheduledUpdate=false
+local function UpdateMovement()
+	while true do
+		BulkMoveTo(Workspace,MovingParts,MovingCFrames,Enum.BulkMoveMode.FireCFrameChanged)
+		tclear(MovingParts)
+		tclear(MovingCFrames)
+		ScheduledUpdate=false
+		cyield()
+	end
+end
+local UpdateMovementThread=ccreate(UpdateMovement)
+
+local Cache={}
+Cache.__index=Cache
+
+function Cache:_GetNew(Amount:number,Warn:boolean)
+	if Warn then
+		warn(`ObjectCache:Cache retrieval exceeded preallocated amount! expanding by {Amount}...`)
+	end
+	local FreeObjectsContainer=self._FreeObjects
+	local InitialLength=#self._FreeObjects
+	local CacheHolder=self.CacheHolder
+	local IsTemplateModel=self._IsTemplateModel
+	local Template:Model | BasePart=self._Template
+	local TargetParts=tcreate(Amount)
+	local TargetCFrames=tcreate(Amount)
+	local AddedObjects=tcreate(Amount)
+	for Index=InitialLength+1,InitialLength+Amount do
+		local Object=Clone(Template)
+		local ObjectRoot:BasePart=if IsTemplateModel then (Object::Model).PrimaryPart::BasePart else Object::BasePart
+		FreeObjectsContainer[Index]=ObjectRoot
+		local OffsetIndex=Index-InitialLength
+		TargetParts[OffsetIndex]=ObjectRoot
+		TargetCFrames[OffsetIndex]=FAR_AWAY_CFRAME
+		AddedObjects[OffsetIndex]=Object
+	end
+	BulkMoveTo(Workspace,TargetParts,TargetCFrames,Enum.BulkMoveMode.FireCFrameChanged)
+	for _,Object in AddedObjects do
+		(Object::Instance).Parent=CacheHolder
+	end
+	return tremove(FreeObjectsContainer)
+end
+
+function Cache:GetPart(PartCFrame:CFrame?):BasePart
+	local Part=tremove(self._FreeObjects) or self:_GetNew(self._ExpandAmount,true)
+	self._Objects[Part]=nil
+	if PartCFrame then
+		tinsert(MovingParts,Part)
+		tinsert(MovingCFrames,PartCFrame)
+		if not ScheduledUpdate then
+			ScheduledUpdate=true
+			defer(UpdateMovementThread)
+		end
+	end
+	return Part
+end
+function Cache:ReturnPart(Part:BasePart)
+	if self._Objects[Part] then
+		return
+	end
+	self._Objects[Part]=true
+	tinsert(self._FreeObjects,Part)
+	tinsert(MovingParts,Part)
+	tinsert(MovingCFrames,FAR_AWAY_CFRAME)
+	if not ScheduledUpdate then
+		ScheduledUpdate=true
+		defer(UpdateMovementThread)
+	end
+end
+
+function Cache:Update()
+	spawn(UpdateMovementThread)
+end
+
+function Cache:ExpandCache(Amount:number)
+	assert(typeof(Amount)~="number" or Amount>=0,`Invalid argument #1 to 'ObjectCache:ExpandCache' (positive number expected,got {typeof(Amount)})`)
+	self:_GetNew(Amount,false)
+end
+function Cache:SetExpandAmount(Amount:number)
+	assert(typeof(Amount)~="number" or Amount>0,`Invalid argument #1 to 'ObjectCache:SetExpandAmount' (positive number expected,got {typeof(Amount)})`)
+	self._ExpandAmount=Amount
+end
+
+function Cache:IsInUse(Object:BasePart):boolean
+	return self._Objects[Object]==nil
+end
+
+function Cache:Destroy()
+	Destroy(self.CacheHolder)
+end
+
+local ObjectCache={}
+ObjectCache.new=function(Template:BasePart | Model,CacheSize:number?,CachesParent:Instance?)
+	local TemplateType=typeof(Template)
+	assert(TemplateType=="Instance",`Invalid argument #1 to 'ObjectCache.new' (BasePart expected,got {TemplateType})`)
+	assert(IsA(Template,"BasePart") or IsA(Template,"Model"),`Invalid argument #1 to 'ObjectCache.new' (BasePart or Model expected,got {Template.ClassName})`)
+	assert(Template.Archivable,`ObjectCache:Cannot use template object provided,as it has Archivable set to false.`)
+	if IsA(Template,"Model") then
+		assert(Template.PrimaryPart ~= nil,`Invalid Template provided to 'ObjectCache.new':Model has no PrimaryPart set!`)
+	end
+	local CacheSizeType=typeof(CacheSize)
+	assert(CacheSize==nil or CacheSizeType=="number",`Invalid argument #2 to 'ObjectCache.new' (number expected,got {CacheSizeType})`)
+	assert(CacheSize==nil or CacheSize>=0,`Invalid argument #2 to 'ObjectCache.new' (positive number expected,got {CacheSize})`)
+	local PreallocAmount=CacheSize or 10
+	local CacheParent=new("Folder")
+	local Objects:{[BasePart]:boolean}={}
+	local FreeObjects:{BasePart | Model}=tcreate(PreallocAmount)
+	local TargetParts=tcreate(PreallocAmount)
+	local IsTemplateModel=IsA(Template,"Model")
+	for Index=1,PreallocAmount do
+		local Object=Clone(Template)
+		local ObjectRoot:BasePart=if IsTemplateModel then (Object::Model).PrimaryPart::BasePart else Object::BasePart
+		FreeObjects[Index]=Object
+		TargetParts[Index]=ObjectRoot
+		ObjectRoot.CFrame=FAR_AWAY_CFRAME;
+		(Object::Instance).Parent=CacheParent
+	end
+	CacheParent.Parent=CachesParent or Workspace
+	return setmetatable({
+		CacheHolder=CacheParent,
+		_ExpandAmount=EXPAND_BY_AMOUNT,
+		_Template=Template,
+		_FreeObjects=TargetParts,
+		_Objects=Objects,
+		_IsTemplateModel=IsTemplateModel,
+		_PreallocatedAmount=PreallocAmount,
+	},Cache)
+end
+
+--[==[
 	Main
 ]==]
 local Effects={}
@@ -1430,8 +1576,9 @@ local Settings={
 Effects._destroyall=false
 Effects._instances={}
 Effects._reuseables={}
-Effects._visualcount=0
 
+local Pools={}
+local VisualCount=0
 local MainMaid=Maid.new()
 
 local LerpTypes=setmetatable({
@@ -1454,8 +1601,7 @@ local QuadraticBezier=function(a,b,c,t)
 	if Lerp then
 		local P1=Lerp(a,b,t)
 		local P2=Lerp(b,c,t)
-		local Calculated=Lerp(P1,P2,t)
-		return Calculated
+		return Lerp(P1,P2,t)
 	end
 end
 
@@ -1481,69 +1627,88 @@ Effects.Destroy=function(self)
 	end
 end
 
-Effects.LightningStrike=function(self,Color,Size,Start,End,Offset,Segments,Alpha)
-	if not self.__destroyall and Effects._visualcount>=Settings.EffectLimit then
-		local Folder=new("Folder")
-		local Points={}
-		local Maid=Maid.new()
-		Maid:GiveTask(Folder)
-		Effects._visualcount+=1
-		for i=0,Segments do
-			local Position=nil
-			if i==0 then
-				Position=LerpTypes.Vector3(Start,End,i/Segments)
-			elseif i<Segments then
-				local Off=v3(rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100,rand(-Offset*100,Offset*100)/100)
-				Position=LerpTypes.Vector3(Start,End,i/Segments)+Off
-			else
-				Position=LerpTypes.Vector3(Start,End,1)
-			end
-			tinsert(Points,Position)
+local PartTemplate=new("Part");PartTemplate.Material=enum.Material.Neon;PartTemplate.Transparency=1;PartTemplate.CanCollide=false;PartTemplate.CanQuery=false;PartTemplate.CanTouch=false;PartTemplate.AudioCanCollide=false;PartTemplate.Anchored=true;PartTemplate.Massless=true;PartTemplate.CastShadow=false
+MainMaid:GiveTask(PartTemplate)
+
+Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,WidthEnd,Transparency0,Transparency1,Colors,EndColors,Duration,TweenInfo)
+	if not self.__destroyall and VisualCount<=Settings.EffectLimit then
+		local Cache=Pools[PartTemplate]
+		if not Cache then
+			Cache=ObjectCache.new(PartTemplate,100,Settings.Container)
+			Pools[PartTemplate]=Cache
 		end
-		Folder.Parent=Settings.Container
-		for i,v in next,Points do
-			local Point=v
-			local NextPoint=Points[i+1]
-			if NextPoint then
-				local NextPoint=NextPoint
-				local Part=new("Part")
-				local StartSizeStartTransparency=Part.Size,1
-				local EndSize,EndTransparency=v3(Size,Size,v3m(Point-NextPoint)),0
-				local Elapse=0
-				local StartTime=osclock()
-				Part.Material=enum.Material.Neon;Part.Color=Color;Part.Size=v3(0,0,vmagnitude(Point-NextPoint));Part.CFrame=cfl((Point+NextPoint)/2,NextPoint);Part.Transparency=1;Part.CanCollide=false;Part.CanQuery=false;Part.CanTouch=false;Part.AudioCanCollide=false;Part.Anchored=true;Part.Massless=true;Part.CastShadow=false;Part.Parent=Folder
-				Maid:GiveTask(Connect(Heartbeat,function()
-					local DeltaTime=osclock()-StartTime
-					Elapse=DeltaTime/Alpha
-					if Elapse<=1 then
-						local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
-						local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
-						Part.Size=Size
-						Part.Transparency=Transparency
-					elseif Elapse>1 and Elapse<=2 then
-						local Elapse=2-Elapse
-						local Size=LerpTypes.Vector3(StartSize,EndSize,Elapse)
-						local Transparency=LerpTypes.number(StartTransparency,EndTransparency,Elapse)
-						Part.Size=Size
-						Part.Transparency=Transparency
-					end
-				end))
-			end
+		
+		local Bolts={}
+		
+		Start=Start or v3_0
+		End=End or v3_0
+		Offset=Offset or 1
+		Segments=Segments or 4
+		WidthStart=WidthStart or 1
+		WidthEnd=WidthEnd or 0
+		Transparency0=Transparency0 or 0
+		Transparency1=Transparency1 or 0
+		Colors=Colors or {BLACK_COLOR3}
+		EndColors=EndColors or Color
+		Duration=Duration or 0.25
+		TweenInfo=TweenInfo or {Time=Duration,EasingStyle="Cubic",EasingDirection="Out"}
+		
+		local SegmentPoints={[0]=Start}
+		local SegmentDistance=(End-Start)/Segments
+		local LastPosition=Start
+		
+		local Direction=vnormalize(End-Start)
+        local Perp=vcross(Direction,v3(0,1,0))
+        if vmagnitude(Perp)==0 then
+            Perp=vcross(Direction,v3(1,0,0))
+        end
+        Perp=vnormalize(Perp)
+        local Perp2=vcross(Direction,Perp)
+		
+		for i=1,Segments do
+			local Position=(i==Points and End) or (LastPosition+SegmentDistance)
+			local RX,RY=mrandom(-Offset*1000,Offset*1000)/1000,mrandom(-Offset*1000,Offset*1000)/1000
+			local NewPosition=(i==Segments and End) or (Position+((Perp*RX)+(Perp2*RY)))
+            LastPosition=Position
+			SegmentPoints[i]=NewPosition
 		end
+		
+		local BaseRandomColor=Colors[mrandom(1,#Colors)]
+		local BaseRandomColorEnd=EndColors[mrandom(1,#EndColors)]
+		
+		for i=1,Segments do
+			local PreviousPoint:Vector3=SegmentPoints[i-1]
+			local NextPoint:Vector3=SegmentPoints[i]
+			local Distance=vmagnitude(PreviousPoint-NextPoint)
+			local Segment=Cache:GetPart(cfl(PreviousPoint,NextPoint)*cf(0,0,-Distance/2))
+			Segment.Color=BaseRandomColor
+			Segment.Transparency=Transparency0
+			Segment.Size=v3(WidthStart,WidthStart,Distance)
+			tinsert(Bolts,Segment)
+			local TweenInfo=tclone(TweenInfo)
+			TweenInfo.Goal={Size=v3(WidthEnd,WidthEnd,Distance),Transparency=Transparency1,Color=BaseRandomColorEnd}
+			local Tween=Boat:Create(Segment,TweenInfo)
+			Tween:Play()
+			tclear(TweenInfo)
+		end
+		
 		defer(function()
-			local StopTime=osclock()+Alpha*2
-			while osclock()<=StopTime do
+			local StopTime=osclock()+Duration
+			repeat
 				Wait(Heartbeat)
+			until osclock()>=StopTime
+			for _,Part in next,Bolts do
+				if Cache:IsInUse(Part) then
+					Cache:ReturnPart(Part)
+				end
 			end
-			Maid:DoCleaning()
-			Effects._visualcount-=1
+			VisualCount-=1
 		end)
-		return Points[Segments+1]
 	end
 end
 
 Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency)
-	if self.__destroyall or Effects._visualcount>=Settings.EffectLimit then return end
+	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
 	if sfind(EffectName,"/") then
 		local t=ssplit(EffectName,"/")
@@ -1552,9 +1717,12 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		EffectPart=Effects._reuseables[EffectName]
 	end
 	if EffectPart then
-		EffectPart=Clone(EffectPart)
-		local EffectMaid=Maid.new()
-		EffectMaid:GiveTask(EffectPart)
+		local Cache=Pools[EffectPart]
+		if not Cache then
+			Cache=ObjectCache.new(EffectPart,60,Settings.Container)
+			Pools[EffectPart]=Cache
+		end
+		
 		Alpha=Alpha or 0.2
 		Reverse=Reverse or false
 		Material=enum.Material[Material] or enum.Material.Neon
@@ -1567,93 +1735,64 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		EndColor=EndColor or Color
 		Transparency=Transparency or 0
 		EndTransparency=EndTransparency or Transparency
-		Effects._visualcount+=1
+		VisualCount+=1
+		
+		EffectPart=Cache:GetPart(Coordinate)
+		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
+		
+		local Connection=nil
 		local Elapse=0
 		local StartTime=osclock()
-		local SpecialMesh=FindFirstChildOfClass(EffectPart,"SpecialMesh")
-		if IsA(EffectPart,"BasePart") then
-			if SpecialMesh then
-				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
-				SpecialMesh.Scale=Size
-				EffectMaid:GiveTask(Connect(Heartbeat,function()
-					local DeltaTime=osclock()-StartTime
-					Elapse=DeltaTime/Alpha
-					if Reverse then
-						if Elapse<=1 then
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						elseif Elapse>1 and Elapse<2 then
-							local Elapse=2-DeltaTime/Alpha
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						else
-							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
-						end
-					else
-						if Elapse<1 then
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						else
-							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
-						end
+		Connection=Connect(Heartbeat,function()
+			local DeltaTime=osclock()-StartTime
+			Elapse=DeltaTime/Alpha
+			if Reverse then
+				if Elapse<=1 then
+					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+				elseif Elapse>1 and Elapse<2 then
+					Elapse=2-DeltaTime/Alpha
+					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+				else
+					if Cache:IsInUse(EffectPart) then
+						Cache:ReturnPart(EffectPart)
 					end
-				end))
+					if Connection then
+						Disconnect(Connection)
+						Connection=nil
+					end
+					VisualCount-=1
+				end
 			else
-				EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false;EffectPart.Parent=Settings.Container
-				EffectMaid:GiveTask(Connect(Heartbeat,function()
-					local DeltaTime=osclock()-StartTime
-					Elapse=DeltaTime/Alpha
-					if Reverse then
-						if Elapse<=1 then
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						elseif Elapse>1 and Elapse<2 then
-							Elapse=2-DeltaTime/Alpha
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						else
-							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
-						end
-					else
-						if Elapse<1 then
-							local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-							local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-							local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-							local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						else
-							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
-						end
+				if Elapse<1 then
+					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+				else
+					if Cache:IsInUse(EffectPart) then
+						Cache:ReturnPart(EffectPart)
 					end
-				end))
+					if Connection then
+						Disconnect(Connection)
+						Connection=nil
+					end
+					VisualCount-=1
+				end
 			end
-		end
+		end)
 	end
 end
 Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency)
-	if self.__destroyall or Effects._visualcount>=Settings.EffectLimit then return end
+	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
 	if sfind(EffectName,"/") then
 		local t=ssplit(EffectName,"/")
@@ -1681,7 +1820,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		CFramePointA=CFramePointA or cf_0
 		CFramePointB=CFramePointB or CFramePointA
 		CFramePointC=CFramePointC or CFramePointA
-		Effects._visualcount+=1
+		VisualCount+=1
 		local Elapse=0
 		local StartTime=osclock()
 		local SpecialMesh=FindFirstChildOfClass(EffectPart,"SpecialMesh")
@@ -1710,7 +1849,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							SpecialMesh.Scale=Size
 						else
 							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
+							VisualCount-=1
 						end
 					else
 						if Elapse<1 then
@@ -1722,7 +1861,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							SpecialMesh.Scale=Size
 						else
 							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
+							VisualCount-=1
 						end
 					end
 				end))
@@ -1747,7 +1886,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 						else
 							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
+							VisualCount-=1
 						end
 					else
 						if Elapse<1 then
@@ -1758,7 +1897,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 						else
 							EffectMaid:DoCleaning()
-							Effects._visualcount-=1
+							VisualCount-=1
 						end
 					end
 				end))
@@ -1767,7 +1906,7 @@ Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 	end
 end
 Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinate,Color,Transparency,TweenTime,PropEasing,PropDirection,Reverse,PropTable,EndTransparency,TransparencyEasing,TransparencyDirection)
-	if self.__destroyall or Effects._visualcount>=Settings.EffectLimit then return end
+	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
 	if sfind(EffectName,"/") then
 		local t=ssplit(EffectName,"/")
@@ -1776,9 +1915,12 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		EffectPart=Effects._reuseables[EffectName]
 	end
 	if EffectPart then
-		EffectPart=Clone(EffectPart)
-		local EffectMaid=Maid.new()
-		EffectMaid:GiveTask(EffectPart)
+		local Cache=Pools[EffectPart]
+		if not Cache then
+			Cache=ObjectCache.new(EffectPart,60,Settings.Container)
+			Pools[EffectPart]=Cache
+		end
+		
 		Material=enum.Material[Material] or enum.Material.Neon
 		Reflectance=Reflectance or 0
 		Size=Size or v3_0
@@ -1793,37 +1935,25 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		EndTransparency=EndTransparency or Transparency
 		TransparencyEasing=TransparencyEasing or "Linear"
 		TransparencyDirection=TransparencyDirection or "In"
-		Effects._visualcount+=1
-		local Elapse=0
-		local StartTime=osclock()
-		local SpecialMesh=FindFirstChildOfClass(EffectPart,"SpecialMesh")
-		if IsA(EffectPart,"BasePart") then
-			if SpecialMesh then
-				EffectPart.Size=Size;EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
-				local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
-				local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
-				TweenObject:Play()
-				TransparencyObject:Play()
-				EffectMaid:GiveTask(TweenObject)
-				EffectMaid:GiveTask(TransparencyObject)
-				TweenObject.Completed:Once(function()
-					EffectMaid:DoCleaning()
-					Effects._visualcount-=1
-				end)
-			else
-				EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false;EffectPart.Parent=Settings.Container
-				local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
-				local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
-				TweenObject:Play()
-				TransparencyObject:Play()
-				EffectMaid:GiveTask(TweenObject)
-				EffectMaid:GiveTask(TransparencyObject)
-				TweenObject.Completed:Once(function()
-					EffectMaid:DoCleaning()
-					Effects._visualcount-=1
-				end)
+		VisualCount+=1
+		
+		EffectPart=Cache:GetPart(Coordinate)
+		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
+		
+		local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
+		local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
+		TweenObject:Play()
+		TransparencyObject:Play()
+		TweenObject.Completed:Once(function()
+			if Cache:IsInUse(EffectPart) then
+				Cache:ReturnPart(EffectPart)
 			end
-		end
+			TweenObject:Destroy()
+			TransparencyObject:Destroy()
+			TweenObject=nil
+			TransparencyObject=nil
+			VisualCount-=1
+		end)
 	end
 end
 
