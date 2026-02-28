@@ -2108,7 +2108,6 @@ local reanimate=function()
 		end
 		return targetGlitchTime
 	end
-
 	local setWalkSpeed=function(n)
 		if type(n)~="number" then
 			n=16
@@ -2150,6 +2149,18 @@ local reanimate=function()
 	end
 	local setshiftlock=function(v) --turns on/off shiftlock
 		shiftlock=v
+	end
+	local getWalkSpeed=function()
+		return walkSpeed
+	end
+	local getJumpPower=function()
+		return jumpPower
+	end
+	local getHipHeight=function(n)
+		return hhOff
+	end
+	local getGravity=function(n)
+		return gravity
 	end
 	local getVel=function() --returns character velocity
 		return xzvel+v3_010*Yvel --important: use only in lerps or it might not work
@@ -2206,6 +2217,9 @@ local reanimate=function()
 		setCamCF=setCamCF,
 		setshiftlock=setshiftlock,
 		setCameraMoveable=setCameraMoveable,
+		getWalkSpeed=getWalkSpeed,
+		getJumpPower=getJumpPower,
+		getHipHeight=getHipHeight,
 		getVel=getVel,
 		getDirs=getDirs,
 		getCamCF=getCamCF,
