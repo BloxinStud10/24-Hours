@@ -1571,7 +1571,8 @@ Effects.__index=Effects
 local Settings={
 	Container=nil,
 	EffectList={},
-	EffectLimit=500
+	EffectLimit=500,
+	ObjectPooling=false
 }
 Effects._destroyall=false
 Effects._instances={}
@@ -1632,10 +1633,14 @@ MainMaid:GiveTask(PartTemplate)
 
 Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,WidthEnd,Transparency0,Transparency1,Colors,EndColors,Duration,TweenInfo)
 	if not self.__destroyall and VisualCount<=Settings.EffectLimit then
-		local Cache=Pools[PartTemplate]
-		if not Cache then
-			Cache=ObjectCache.new(PartTemplate,100,Settings.Container)
-			Pools[PartTemplate]=Cache
+		local ObjectPooling=Settings.ObjectPooling
+		local Cache=nil
+		if ObjectPooling then
+			Cache=Pools[PartTemplate]
+			if not Cache then
+				Cache=ObjectCache.new(PartTemplate,100,Settings.Container)
+				Pools[PartTemplate]=Cache
+			end
 		end
 		
 		local Bolts={}
@@ -1680,7 +1685,13 @@ Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,Width
 			local PreviousPoint:Vector3=SegmentPoints[i-1]
 			local NextPoint:Vector3=SegmentPoints[i]
 			local Distance=vmagnitude(PreviousPoint-NextPoint)
-			local Segment=Cache:GetPart(cfl(PreviousPoint,NextPoint)*cf(0,0,-Distance/2))
+			local Segment
+			if ObjectPooling then
+				Segment=Cache:GetPart(cfl(PreviousPoint,NextPoint)*cf(0,0,-Distance/2))
+			else
+				Segment=Clone(PartTemplate)
+				Segment.Parent=Settings.Container
+			end
 			Segment.Color=BaseRandomColor
 			Segment.Transparency=Transparency0
 			Segment.Size=v3(WidthStart,WidthStart,Distance)
@@ -1698,8 +1709,12 @@ Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,Width
 				Wait(Heartbeat)
 			until osclock()>=StopTime
 			for _,Part in next,Bolts do
-				if Cache:IsInUse(Part) then
-					Cache:ReturnPart(Part)
+				if ObjectPooling then
+					if Cache:IsInUse(Part) then
+						Cache:ReturnPart(Part)
+					end
+				else
+					Destroy(Part)
 				end
 			end
 			VisualCount-=1
@@ -1717,10 +1732,14 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		EffectPart=Effects._reuseables[EffectName]
 	end
 	if EffectPart then
-		local Cache=Pools[EffectPart]
-		if not Cache then
-			Cache=ObjectCache.new(EffectPart,60,Settings.Container)
-			Pools[EffectPart]=Cache
+		local ObjectPooling=Settings.ObjectPooling
+		local Cache=nil
+		if ObjectPooling then
+			Cache=Pools[PartTemplate]
+			if not Cache then
+				Cache=ObjectCache.new(EffectPart,100,Settings.Container)
+				Pools[PartTemplate]=Cache
+			end
 		end
 		
 		Alpha=Alpha or 0.2
@@ -1737,7 +1756,12 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		EndTransparency=EndTransparency or Transparency
 		VisualCount+=1
 		
-		EffectPart=Cache:GetPart(Coordinate)
+		if ObjectPooling then
+			EffectPart=Cache:GetPart(Coordinate)
+		else
+			EffectPart=Clone(EffectPart)
+			EffectPart.Parent=Settings.Container
+		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
 		
 		local Connection=nil
@@ -1761,8 +1785,12 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
 					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 				else
-					if Cache:IsInUse(EffectPart) then
-						Cache:ReturnPart(EffectPart)
+					if ObjectPooling then
+						if Cache:IsInUse(EffectPart) then
+							Cache:ReturnPart(EffectPart)
+						end
+					else
+						Destroy(EffectPart)
 					end
 					if Connection then
 						Disconnect(Connection)
@@ -1778,8 +1806,12 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
 					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 				else
-					if Cache:IsInUse(EffectPart) then
-						Cache:ReturnPart(EffectPart)
+					if ObjectPooling then
+						if Cache:IsInUse(EffectPart) then
+							Cache:ReturnPart(EffectPart)
+						end
+					else
+						Destroy(EffectPart)
 					end
 					if Connection then
 						Disconnect(Connection)
@@ -1915,10 +1947,14 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		EffectPart=Effects._reuseables[EffectName]
 	end
 	if EffectPart then
-		local Cache=Pools[EffectPart]
-		if not Cache then
-			Cache=ObjectCache.new(EffectPart,60,Settings.Container)
-			Pools[EffectPart]=Cache
+		local ObjectPooling=Settings.ObjectPooling
+		local Cache=nil
+		if ObjectPooling then
+			Cache=Pools[PartTemplate]
+			if not Cache then
+				Cache=ObjectCache.new(EffectPart,100,Settings.Container)
+				Pools[PartTemplate]=Cache
+			end
 		end
 		
 		Material=enum.Material[Material] or enum.Material.Neon
@@ -1937,7 +1973,12 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		TransparencyDirection=TransparencyDirection or "In"
 		VisualCount+=1
 		
-		EffectPart=Cache:GetPart(Coordinate)
+		if ObjectPooling then
+			EffectPart=Cache:GetPart(Coordinate)
+		else
+			EffectPart=Clone(EffectPart)
+			EffectPart.Parent=Settings.Container
+		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
 		
 		local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
@@ -1945,13 +1986,15 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		TweenObject:Play()
 		TransparencyObject:Play()
 		TweenObject.Completed:Once(function()
-			if Cache:IsInUse(EffectPart) then
-				Cache:ReturnPart(EffectPart)
+			if ObjectPooling then
+				if Cache:IsInUse(EffectPart) then
+					Cache:ReturnPart(EffectPart)
+				end
+			else
+				Destroy(EffectPart)
 			end
 			TweenObject:Destroy()
 			TransparencyObject:Destroy()
-			TweenObject=nil
-			TransparencyObject=nil
 			VisualCount-=1
 		end)
 	end
@@ -1964,6 +2007,7 @@ return {
 	AddDebris=AddDebris,
 	TorusRandom=TorusRandom,
 	CreateValue=CreateValue,
+	ObjectCache=ObjectCache,
 	QuadraticBezier=QuadraticBezier,
 	Effects=Effects
 }
