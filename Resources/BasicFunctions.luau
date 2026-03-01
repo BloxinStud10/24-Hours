@@ -1690,6 +1690,7 @@ Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,Width
 				Segment=Cache:GetPart(cfl(PreviousPoint,NextPoint)*cf(0,0,-Distance/2))
 			else
 				Segment=Clone(PartTemplate)
+				Segment.CFrame=cfl(PreviousPoint,NextPoint)*cf(0,0,-Distance/2)
 				Segment.Parent=Settings.Container
 			end
 			Segment.Color=BaseRandomColor
@@ -1760,6 +1761,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 			EffectPart=Cache:GetPart(Coordinate)
 		else
 			EffectPart=Clone(EffectPart)
+			EffectPart.CFrame=Coordinate
 			EffectPart.Parent=Settings.Container
 		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
@@ -1977,6 +1979,7 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 			EffectPart=Cache:GetPart(Coordinate)
 		else
 			EffectPart=Clone(EffectPart)
+			EffectPart.CFrame=Coordinate
 			EffectPart.Parent=Settings.Container
 		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
