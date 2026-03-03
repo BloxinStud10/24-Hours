@@ -2180,6 +2180,30 @@ local reanimate=function()
 	local isWalking=function() --returns true if character is walking
 		return isWalking
 	end
+	local isFlinging=function(i) --returns true if target (or target's descendant) is scheduled to be flung
+		if not IsDescendantOf(p,ws) then
+			return false
+		end
+		if IsA(i,"BasePart") or IsA(i,"Humanoid") then 
+			i=insGet(target,"Parent") 
+			if IsA(i,"Accessory") then
+				i=insGet(i,"Parent")
+			end
+		end
+		if (not IsA(i,"Model")) or (i==c) or (IsDescendantOf(i,c)) then
+			return false
+		end
+		local targetpart=QueryDescendants(i,">BasePart#HumanoidRootPart")[1] or QueryDescendants(i,">BasePart#Torso")[1] or QueryDescendants(i,">BasePart#UpperTorso")[1]
+		if (not targetpart) or (flingtable[targetpart]==nil) then
+			return false
+		end
+		for p,b in next,flingtable do
+			if IsDescendantOf(i,p) then
+				return true
+			end
+		end
+		return false
+	end
 	local setCameraMoveable=function(v) --make camera movement to true or false
 		cameraMoveable=v
 	end
@@ -2226,6 +2250,7 @@ local reanimate=function()
 		isFirstPerson=isFirstPerson,
 		isOnGround=isOnGround,
 		isWalking=isWalking,
+		isFlinging=isFlinging,
 		setHipHeight=setHipHeight,
 		enableKeyCode=enableKeyCode
 	}
