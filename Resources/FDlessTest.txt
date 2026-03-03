@@ -2181,7 +2181,7 @@ local reanimate=function()
 		return isWalking
 	end
 	local isFlinging=function(i) --returns true if target (or target's descendant) is scheduled to be flung
-		if not IsDescendantOf(p,ws) then
+		if not IsDescendantOf(i,ws) then
 			return false
 		end
 		if IsA(i,"BasePart") or IsA(i,"Humanoid") then 
