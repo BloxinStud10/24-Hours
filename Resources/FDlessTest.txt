@@ -2185,7 +2185,7 @@ local reanimate=function()
 			return false
 		end
 		if IsA(i,"BasePart") or IsA(i,"Humanoid") then 
-			i=insGet(target,"Parent") 
+			i=insGet(i,"Parent")
 			if IsA(i,"Accessory") then
 				i=insGet(i,"Parent")
 			end
