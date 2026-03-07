@@ -38,6 +38,7 @@ local Destroy=game.Destroy
 local Clone=game.Clone
 local GetPropertyChangedSignal=game.GetPropertyChangedSignal
 local GetChildren=game.GetChildren
+local QueryDescendants=game.QueryDescendants
 
 local Workspace=FindFirstChildOfClass(game,"Workspace")
 local RunService=FindFirstChildOfClass(game,"RunService")
@@ -54,6 +55,7 @@ local ssub=string.sub
 local smatch=string.match
 local ssplit=string.split
 local sfind=string.find
+local schar=string.char
 local bc=BrickColor.new
 local v3=vector.create
 local vmagnitude=vector.magnitude
@@ -63,6 +65,7 @@ local vlerp=vector.lerp
 local cf=CFrame.new
 local angles=CFrame.fromEulerAnglesXYZ
 local cfl=CFrame.lookAt
+local mlerp=math.lerp
 local mrandom=math.random
 local sin=math.sin
 local cos=math.cos
@@ -85,6 +88,18 @@ local pp=PhysicalProperties.new
 
 local v3_0=v3(0,0,0)
 local cf_0=cf()
+
+local randomstring=function()
+	local s=""
+	for i=1,mrandom(8,15) do
+		if mrandom(2)==2 then
+			s..=schar(mrandom(65,90))
+		else
+			s..=schar(mrandom(97,122))
+		end
+	end
+	return s
+end
 
 --[==[
 	Maid
@@ -1551,6 +1566,7 @@ ObjectCache.new=function(Template:BasePart | Model,CacheSize:number?,CachesParen
 		ObjectRoot.CFrame=FAR_AWAY_CFRAME;
 		(Object::Instance).Parent=CacheParent
 	end
+	CacheParent.Name=randomstring()
 	CacheParent.Parent=CachesParent or Workspace
 	return setmetatable({
 		CacheHolder=CacheParent,
@@ -1583,7 +1599,7 @@ local VisualCount=0
 local MainMaid=Maid.new()
 
 local LerpTypes=setmetatable({
-	number=Lerp,
+	number=mlerp,
 	Color3=Color3LerpFunction,
 	Vector3=vlerp,
 	CFrame=function(V0,V1,Alpha)
@@ -1616,6 +1632,15 @@ Effects.AddToList=function(self,instance)
 	for _,v in next,GetChildren(instance) do
 		Effects._reuseables[v.Name]=v
 		MainMaid:GiveTask(v)
+	end
+	for _,v in next,QueryDescendants(instance,"BasePart") do
+		v.CanCollide=false
+		v.CanQuery=false
+		v.CanTouch=false
+		v.AudioCanCollide=false
+		v.Anchored=true
+		v.Massless=true
+		v.CastShadow=false
 	end
 end
 
@@ -1736,10 +1761,10 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		local ObjectPooling=Settings.ObjectPooling
 		local Cache=nil
 		if ObjectPooling then
-			Cache=Pools[PartTemplate]
+			Cache=Pools[EffectPart]
 			if not Cache then
 				Cache=ObjectCache.new(EffectPart,100,Settings.Container)
-				Pools[PartTemplate]=Cache
+				Pools[EffectPart]=Cache
 			end
 		end
 		
@@ -1764,7 +1789,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 			EffectPart.CFrame=Coordinate
 			EffectPart.Parent=Settings.Container
 		end
-		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
+		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 		
 		local Connection=nil
 		local Elapse=0
@@ -1825,120 +1850,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		end)
 	end
 end
-Effects.CurveEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency)
-	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
-	local EffectPart
-	if sfind(EffectName,"/") then
-		local t=ssplit(EffectName,"/")
-		EffectPart=Effects._reuseables[t[1]][t[2]]
-	else
-		EffectPart=Effects._reuseables[EffectName]
-	end
-	if EffectPart then
-		EffectPart=Clone(EffectPart)
-		local EffectMaid=Maid.new()
-		EffectMaid:GiveTask(EffectPart)
-		Alpha=Alpha or 0.2
-		Reverse=Reverse or false
-		Material=Material or Enum.Material.Neon
-		Reflectance=Reflectance or 0
-		SizePointA=SizePointA or v3_0
-		SizePointB=SizePointB or SizePointB
-		SizePointC=SizePointC or SizePointB
-		ColorPointA=ColorPointA or BLACK_COLOR3
-		ColorPointB=ColorPointB or ColorPointA
-		ColorPointC=ColorPointC or ColorPointA
-		TransparencyPointA=TransparencyPointA or 1
-		TransparencyPointB=TransparencyPointB or 0
-		TransparencyPointC=TransparencyPointC or 1
-		CFramePointA=CFramePointA or cf_0
-		CFramePointB=CFramePointB or CFramePointA
-		CFramePointC=CFramePointC or CFramePointA
-		VisualCount+=1
-		local Elapse=0
-		local StartTime=osclock()
-		local SpecialMesh=FindFirstChildOfClass(EffectPart,"SpecialMesh")
-		if IsA(EffectPart,"BasePart") then
-			if SpecialMesh then
-				EffectPart.Size=v3(1,1,1);EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.Parent=Settings.Container
-				SpecialMesh.Scale=Size
-				EffectMaid:GiveTask(Connect(Heartbeat,function()
-					local DeltaTime=osclock()-StartTime
-					Elapse=DeltaTime/Alpha
-					if Reverse then
-						if Elapse<=1 then
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						elseif Elapse>1 and Elapse<2 then
-							local Elapse=2-DeltaTime/Alpha
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						else
-							EffectMaid:DoCleaning()
-							VisualCount-=1
-						end
-					else
-						if Elapse<1 then
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-							SpecialMesh.Scale=Size
-						else
-							EffectMaid:DoCleaning()
-							VisualCount-=1
-						end
-					end
-				end))
-			else
-				EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.CFrame=Coordinate;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false;EffectPart.Parent=Settings.Container
-				EffectMaid:GiveTask(Connect(Heartbeat,function()
-					local delta=osclock()-StartTime
-					Elapse=delta/Alpha
-					if Reverse then
-						if Elapse<=1 then
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						elseif Elapse>1 and Elapse<2 then
-							Elapse=2-DeltaTime/Alpha
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						else
-							EffectMaid:DoCleaning()
-							VisualCount-=1
-						end
-					else
-						if Elapse<1 then
-							local Size=QuadraticBezier(SizePointA,SizePointB,SizePointC,Elapse)
-							local CFrame=QuadraticBezier(CFramePointA,CFramePointB,CFramePointC,Elapse)
-							local Color=QuadraticBezier(ColorPointA,ColorPointB,ColorPointC,Elapse)
-							local Transparency=QuadraticBezier(TransparencyPointA,TransparencyPointB,TransparencyPointC,Elapse)
-							EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
-						else
-							EffectMaid:DoCleaning()
-							VisualCount-=1
-						end
-					end
-				end))
-			end
-		end
-	end
-end
+
 Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinate,Color,Transparency,TweenTime,PropEasing,PropDirection,Reverse,PropTable,EndTransparency,TransparencyEasing,TransparencyDirection)
 	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
@@ -1952,10 +1864,10 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		local ObjectPooling=Settings.ObjectPooling
 		local Cache=nil
 		if ObjectPooling then
-			Cache=Pools[PartTemplate]
+			Cache=Pools[EffectPart]
 			if not Cache then
 				Cache=ObjectCache.new(EffectPart,100,Settings.Container)
-				Pools[PartTemplate]=Cache
+				Pools[EffectPart]=Cache
 			end
 		end
 		
@@ -1982,7 +1894,7 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 			EffectPart.CFrame=Coordinate
 			EffectPart.Parent=Settings.Container
 		end
-		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency;EffectPart.CanCollide=false;EffectPart.CanQuery=false;EffectPart.CanTouch=false;EffectPart.AudioCanCollide=false;EffectPart.Anchored=true;EffectPart.Massless=true;EffectPart.CastShadow=false
+		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 		
 		local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
 		local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
@@ -2003,10 +1915,16 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 	end
 end
 
+Effects.SequenceEffect=function(self,EffectName,Material,Reflectance)
+	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
+	--fuh maybe later
+	--also you probably looking at this and thinking yourself, "yeah let's wait for this guy to update ts and then i will skid"
+end
+
 return {
 	Maid=Maid,
 	TweenFunctions=TweenFunctions,
-	TweenCreate=Boat.Create,
+	Boat=Boat,
 	AddDebris=AddDebris,
 	TorusRandom=TorusRandom,
 	CreateValue=CreateValue,
