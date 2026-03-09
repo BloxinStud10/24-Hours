@@ -422,7 +422,7 @@ end
 local SortByTime=function(A,B)
 	return A.Time<B.Time
 end
-local function Color3LerpFunction(C0,C1,Alpha)
+local Color3LerpFunction=function(C0,C1,Alpha)
 	local L0,U0,V0
 	local R0,G0,B0=C0.R,C0.G,C0.B
 	R0=R0<0.0404482362771076 and R0/12.92 or 0.87941546140213*(R0+0.055)^2.4
@@ -479,7 +479,7 @@ local function Color3LerpFunction(C0,C1,Alpha)
 	B=B>1 and 1 or B<0 and 0 or B
 	return c3(R,G,B)
 end
-local function Color3Lerp(C0,C1)
+local Color3Lerp=function(C0,C1)
 	return function(Alpha)
 		return Color3LerpFunction(C0,C1,Alpha)
 	end
@@ -496,9 +496,8 @@ local TypeLerpers=setmetatable({
 		end
 	end;
 	number=function(V0,V1)
-		local Delta=V1-V0
 		return function(Alpha)
-			return V0+Delta*Alpha
+			return mlerp(V0,V1,Alpha)
 		end
 	end;
 	string=function(V0,V1)
@@ -1450,7 +1449,7 @@ local MovingParts=tcreate(10_000)
 local MovingCFrames=tcreate(10_000)
 
 local ScheduledUpdate=false
-local function UpdateMovement()
+local UpdateMovement=function()
 	while true do
 		BulkMoveTo(Workspace,MovingParts,MovingCFrames,Enum.BulkMoveMode.FireCFrameChanged)
 		tclear(MovingParts)
@@ -1659,7 +1658,7 @@ MainMaid:GiveTask(PartTemplate)
 Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,WidthEnd,Transparency0,Transparency1,Colors,EndColors,Duration,TweenInfo)
 	if not self.__destroyall and VisualCount<=Settings.EffectLimit then
 		local ObjectPooling=Settings.ObjectPooling
-		local Cache=nil
+		local Cache
 		if ObjectPooling then
 			Cache=Pools[PartTemplate]
 			if not Cache then
@@ -1748,7 +1747,7 @@ Effects.LightningStrike=function(self,Start,End,Offset,Segments,WidthStart,Width
 	end
 end
 
-Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency)
+Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,Size,EndSize,Coordinate,EndCoordinate,Color,EndColor,Transparency,EndTransparency,ColorUpdater)
 	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
 	if sfind(EffectName,"/") then
@@ -1759,7 +1758,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 	end
 	if EffectPart then
 		local ObjectPooling=Settings.ObjectPooling
-		local Cache=nil
+		local Cache
 		if ObjectPooling then
 			Cache=Pools[EffectPart]
 			if not Cache then
@@ -1773,13 +1772,9 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		Material=enum.Material[Material] or enum.Material.Neon
 		Reflectance=Reflectance or 0
 		Size=Size or v3_0
-		EndSize=EndSize or Size
 		Coordinate=Coordinate or cf_0
-		EndCoordinate=EndCoordinate or Coordinate
-		Color=Color or BLACK_COLOR3
-		EndColor=EndColor or Color
+		Color=(ColorUpdater and ColorUpdater.Value) or Color or BLACK_COLOR3
 		Transparency=Transparency or 0
-		EndTransparency=EndTransparency or Transparency
 		VisualCount+=1
 		
 		if ObjectPooling then
@@ -1791,26 +1786,51 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 		
-		local Connection=nil
+		local Connection,ColorChanged
 		local Elapse=0
 		local StartTime=osclock()
+		if typeof(ColorUpdater)=="Instance" then
+			ColorChanged=Connect(GetPropertyChangedSignal(ColorUpdater,"Value"),function()
+				local Value=ColorUpdater.Value
+				EffectPart.Color=Value
+			end)
+		elseif typeof(ColorUpdater)=="table" then
+			ColorChanged=ColorUpdater.Changed:Connect(function()
+				local Value=ColorUpdater.Value
+				EffectPart.Color=Value
+			end)
+		end
 		Connection=Connect(Heartbeat,function()
 			local DeltaTime=osclock()-StartTime
 			Elapse=DeltaTime/Alpha
 			if Reverse then
 				if Elapse<=1 then
-					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+					if EndSize then
+						EffectPart.Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					end
+					if EndCoordinate then
+						EffectPart.CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					end
+					if not ColorUpdater and EndColor then
+						EffectPart.Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					end
+					if EndTransparency then
+						EffectPart.Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					end
 				elseif Elapse>1 and Elapse<2 then
 					Elapse=2-DeltaTime/Alpha
-					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+					if EndSize then
+						EffectPart.Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					end
+					if EndCoordinate then
+						EffectPart.CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					end
+					if not ColorUpdater and EndColor then
+						EffectPart.Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					end
+					if EndTransparency then
+						EffectPart.Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					end
 				else
 					if ObjectPooling then
 						if Cache:IsInUse(EffectPart) then
@@ -1819,19 +1839,32 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 					else
 						Destroy(EffectPart)
 					end
+					if typeof(ColorChanged)=="RBXScriptConnection" then
+						Disconnect(ColorChanged)
+					elseif typeof(ColorChanged)=="table" then
+						ColorChanged:Disconnect()
+					end
 					if Connection then
 						Disconnect(Connection)
 						Connection=nil
 					end
+					ColorChanged=nil
 					VisualCount-=1
 				end
 			else
 				if Elapse<1 then
-					local Size=LerpTypes.Vector3(Size,EndSize,Elapse)
-					local CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
-					local Color=LerpTypes.Color3(Color,EndColor,Elapse)
-					local Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
-					EffectPart.Size=Size;EffectPart.CFrame=CFrame;EffectPart.Color=Color;EffectPart.Transparency=Transparency
+					if EndSize then
+						EffectPart.Size=LerpTypes.Vector3(Size,EndSize,Elapse)
+					end
+					if EndCoordinate then
+						EffectPart.CFrame=LerpTypes.CFrame(Coordinate,EndCoordinate,Elapse)
+					end
+					if not ColorUpdater and EndColor then
+						EffectPart.Color=LerpTypes.Color3(Color,EndColor,Elapse)
+					end
+					if EndTransparency then
+						EffectPart.Transparency=LerpTypes.number(Transparency,EndTransparency,Elapse)
+					end
 				else
 					if ObjectPooling then
 						if Cache:IsInUse(EffectPart) then
@@ -1840,10 +1873,16 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 					else
 						Destroy(EffectPart)
 					end
+					if typeof(ColorChanged)=="RBXScriptConnection" then
+						Disconnect(ColorChanged)
+					elseif typeof(ColorChanged)=="table" then
+						ColorChanged:Disconnect()
+					end
 					if Connection then
 						Disconnect(Connection)
 						Connection=nil
 					end
+					ColorChanged=nil
 					VisualCount-=1
 				end
 			end
@@ -1851,7 +1890,7 @@ Effects.WackyEffect=function(self,EffectName,Alpha,Reverse,Material,Reflectance,
 	end
 end
 
-Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinate,Color,Transparency,TweenTime,PropEasing,PropDirection,Reverse,PropTable,EndTransparency,TransparencyEasing,TransparencyDirection)
+Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinate,Color,Transparency,TweenTime,PropEasing,PropDirection,Reverse,PropTable,EndTransparency,TransparencyEasing,TransparencyDirection,ColorUpdater)
 	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	local EffectPart
 	if sfind(EffectName,"/") then
@@ -1862,7 +1901,7 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 	end
 	if EffectPart then
 		local ObjectPooling=Settings.ObjectPooling
-		local Cache=nil
+		local Cache
 		if ObjectPooling then
 			Cache=Pools[EffectPart]
 			if not Cache then
@@ -1875,14 +1914,13 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		Reflectance=Reflectance or 0
 		Size=Size or v3_0
 		Coordinate=Coordinate or cf_0
-		Color=Color or BLACK_COLOR3
+		Color=(ColorUpdater and ColorUpdater.Value) or Color or BLACK_COLOR3
 		Transparency=Transparency or 0
 		TweenTime=TweenTime or 0.2
 		PropEasing=PropEasing or "Linear"
 		PropDirection=PropDirection or "In"
 		Reverse=Reverse or false
 		PropTable=PropTable or {}
-		EndTransparency=EndTransparency or Transparency
 		TransparencyEasing=TransparencyEasing or "Linear"
 		TransparencyDirection=TransparencyDirection or "In"
 		VisualCount+=1
@@ -1896,10 +1934,26 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 		end
 		EffectPart.Material=Material;EffectPart.Reflectance=Reflectance;EffectPart.Size=Size;EffectPart.Color=Color;EffectPart.Transparency=Transparency
 		
+		local ColorChanged
+		if typeof(ColorUpdater)=="Instance" then
+			ColorChanged=Connect(GetPropertyChangedSignal(ColorUpdater,"Value"),function()
+				local Value=ColorUpdater.Value
+				EffectPart.Color=Value
+			end)
+		elseif typeof(ColorUpdater)=="table" then
+			ColorChanged=ColorUpdater.Changed:Connect(function()
+				local Value=ColorUpdater.Value
+				EffectPart.Color=Value
+			end)
+		end
+		if ColorUpdater and PropTable.Color then
+			PropTable.Color=nil
+		end
+		
 		local TweenObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=PropEasing,EasingDirection=PropDirection,Reverse=Reverse,Goal=PropTable})
-		local TransparencyObject=Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
+		local TransparencyObject=EndTransparency and Boat:Create(EffectPart,{Time=TweenTime,EasingStyle=TransparencyEasing,EasingDirection=TransparencyDirection,Reverse=Reverse,Goal={Transparency=EndTransparency}})
 		TweenObject:Play()
-		TransparencyObject:Play()
+		if TransparencyObject then TransparencyObject:Play() end
 		TweenObject.Completed:Once(function()
 			if ObjectPooling then
 				if Cache:IsInUse(EffectPart) then
@@ -1908,8 +1962,16 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 			else
 				Destroy(EffectPart)
 			end
+			if typeof(ColorChanged)=="RBXScriptConnection" then
+				Disconnect(ColorChanged)
+			elseif typeof(ColorChanged)=="table" then
+				ColorChanged:Disconnect()
+			end
 			TweenObject:Destroy()
-			TransparencyObject:Destroy()
+			if TransparencyObject then
+				TransparencyObject:Destroy()
+			end
+			ColorChanged=nil
 			VisualCount-=1
 		end)
 	end
@@ -1918,7 +1980,7 @@ end
 Effects.SequenceEffect=function(self,EffectName,Material,Reflectance)
 	if self.__destroyall or VisualCount>=Settings.EffectLimit then return end
 	--fuh maybe later
-	--also you probably looking at this and thinking yourself, "yeah let's wait for this guy to update ts and then i will skid"
+	--Theo, u need to stop relying on my works for ur shitty script
 end
 
 return {
