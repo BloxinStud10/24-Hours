@@ -1912,7 +1912,6 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 									Part[Property]=Lerper(TweenElapse)
 								end
 							end
-							local Index=#ActiveParts+1
 							if not ActiveParts[Index] then
 								ActiveParts[Index]=Part
 								ActiveCFrames[Index]=Data[5]
