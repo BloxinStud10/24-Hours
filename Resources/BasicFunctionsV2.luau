@@ -1869,10 +1869,10 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-							end
-							if not ActiveParts[Index] then
-								ActiveParts[Index]=Part
-								ActiveCFrames[Index]=Lerper(0)
+								if not ActiveParts[Index] then
+									ActiveParts[Index]=Part
+									ActiveCFrames[Index]=Lerper(0)
+								end
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
@@ -1887,10 +1887,10 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-							end
-							if not ActiveParts[Index] then
-								ActiveParts[Index]=Part
-								ActiveCFrames[Index]=Lerper(0)
+								if not ActiveParts[Index] then
+									ActiveParts[Index]=Part
+									ActiveCFrames[Index]=Lerper(0)
+								end
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
@@ -1911,10 +1911,10 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-							end
-							if not ActiveParts[Index] then
-								ActiveParts[Index]=Part
-								ActiveCFrames[Index]=Lerper(0)
+								if not ActiveParts[Index] then
+									ActiveParts[Index]=Part
+									ActiveCFrames[Index]=Lerper(0)
+								end
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
