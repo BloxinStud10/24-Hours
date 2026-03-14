@@ -1846,7 +1846,7 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 					local PropTable=Data[10]
 					local TweenData=Data[11]
 					local TransparencyFunc=Data[12]
-					local ColorUpdater=Data[12]
+					local ColorUpdater=Data[13]
 					
 					local Index=#ActiveParts+1
 					local DeltaTime=CurrentTime-StartTime
