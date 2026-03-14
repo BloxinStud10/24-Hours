@@ -1705,7 +1705,7 @@ Effects.TweenEffect=function(self,EffectName,Material,Reflectance,Size,Coordinat
 				TransparencyFunc=TypeLerpers.number(Transparency,EndTransparency)
 			end
 			
-			tinsert(Actives,{"Tween",EffectName,EffectPart,osclock(),TweenTime,TweenFunctions[PropEasing][PropDirection],TweenFunctions[TransparencyEasing][TransparencyDirection],Reverse,PropTable,TweenData,TransparencyFunc,ColorUpdater})
+			tinsert(Actives,{"Tween",EffectName,EffectPart,osclock(),Coordinate,TweenTime,TweenFunctions[PropEasing][PropDirection],TweenFunctions[TransparencyEasing][TransparencyDirection],Reverse,PropTable,TweenData,TransparencyFunc,ColorUpdater})
 		end
 	end
 end
@@ -1839,13 +1839,13 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 					end
 				elseif Type=="Tween" then
 					local StartTime=Data[4]
-					local TweenTime=Data[5]
-					local TweenFunc=Data[6]
-					local TransparencyTweenFunc=Data[7]
-					local Reverse=Data[8]
-					local PropTable=Data[9]
-					local TweenData=Data[10]
-					local TransparencyFunc=Data[11]
+					local TweenTime=Data[6]
+					local TweenFunc=Data[7]
+					local TransparencyTweenFunc=Data[8]
+					local Reverse=Data[9]
+					local PropTable=Data[10]
+					local TweenData=Data[11]
+					local TransparencyFunc=Data[12]
 					local ColorUpdater=Data[12]
 					
 					local Index=#ActiveParts+1
@@ -1869,10 +1869,10 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-								if not ActiveParts[Index] then
-									ActiveParts[Index]=Part
-									ActiveCFrames[Index]=Lerper(0)
-								end
+							end
+							if not ActiveParts[Index] then
+								ActiveParts[Index]=Part
+								ActiveCFrames[Index]=Data[5]
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
@@ -1887,10 +1887,10 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-								if not ActiveParts[Index] then
-									ActiveParts[Index]=Part
-									ActiveCFrames[Index]=Lerper(0)
-								end
+							end
+							if not ActiveParts[Index] then
+								ActiveParts[Index]=Part
+								ActiveCFrames[Index]=Data[5]
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
@@ -1911,10 +1911,11 @@ MainMaid:GiveTask(Connect(Heartbeat,function()
 								else
 									Part[Property]=Lerper(TweenElapse)
 								end
-								if not ActiveParts[Index] then
-									ActiveParts[Index]=Part
-									ActiveCFrames[Index]=Lerper(0)
-								end
+							end
+							local Index=#ActiveParts+1
+							if not ActiveParts[Index] then
+								ActiveParts[Index]=Part
+								ActiveCFrames[Index]=Data[5]
 							end
 							if TransparencyFunc then
 								Part.Transparency=TransparencyFunc(TransparencyTweenElapse)
