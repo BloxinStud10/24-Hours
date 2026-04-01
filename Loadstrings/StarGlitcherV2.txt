@@ -1,0 +1,9 @@
+--[[
+	FE Star Glitcher V2 (IT'S REAL)
+	mango mango mango
+	
+	https://discord.gg/bjTxKxjJVc
+	Join 24-HOURS for more scripts (in the future)
+]]--
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/StarGlitcherV2.luau"))()
