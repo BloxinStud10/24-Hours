@@ -1044,7 +1044,11 @@ local reanimate=function()
 										insSet(hrp,"CFrame",tcf)
 										insSet(hrp,"AssemblyLinearVelocity",v3_0)
 										insSet(hrp,"AssemblyAngularVelocity",v3_0)
-										insGet(hum,"Move")(hum,v3_nan)
+										if sethiddenproperty then
+											sethiddenproperty(hum,"MoveDirectionInternal",v3_nan)
+										else
+											insGet(hum,"Move")(hum,v3_nan)
+										end
 										sethiddenproperty(hrp,"PhysicsRepRootPart",i)
 									else
 										local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
@@ -1063,7 +1067,11 @@ local reanimate=function()
 							end
 							if instantfling then
 								insSet(hum,"PlatformStand",false)
-								insGet(hum,"Move")(hum,v3_0)
+								if sethiddenproperty then
+									sethiddenproperty(hum,"MoveDirectionInternal",v3_0)
+								else
+									insGet(hum,"Move")(hum,v3_0)
+								end
 								if hrp then
 									sethiddenproperty(hrp,"PhysicsRepRootPart",nil)
 								end
