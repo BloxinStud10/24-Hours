@@ -2158,8 +2158,18 @@ local reanimate=function()
 	local setCamScriptableCF=function(v) --sets camera cframe freely (set nil to set back to normal)
 		if typeof(v)=="CFrame" then
 			scriptablecamcf=v
+			camcfLV=cfGet(scriptablecamcf,"LookVector")
+			camrot=cfl(v3_0,camcfLV)
+			camrotX,camrotY=camrot:ToEulerAnglesYXZ()
+			camcfRV=cfGet(camrot,"RightVector")
+			cammag=-vmagnitude((cfGet(scriptablecamcf,"Position")-(pos+v3_0150)))
 		elseif typeof(v)=="Vector3" then
 			scriptablecamcf=cf(v)
+			camcfLV=cfGet(scriptablecamcf,"LookVector")
+			camrot=cfl(v3_0,camcfLV)
+			camrotX,camrotY=camrot:ToEulerAnglesYXZ()
+			camcfRV=cfGet(camrot,"RightVector")
+			cammag=-vmagnitude((cfGet(scriptablecamcf,"Position")-(pos+v3_0150)))
 		else
 			scriptablecamcf=nil
 		end
