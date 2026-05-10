@@ -28,6 +28,7 @@ local tinsert=table.insert
 local tclear=table.clear
 local tclone=table.clone
 local tfind=table.find
+local tconcat=table.concat
 local vmagnitude=vector.magnitude --faster than indexing with Magnitude
 local vnormalize=vector.normalize --faster than indexing with Unit
 
@@ -69,16 +70,17 @@ local v3_nan=v3_0/0
 local enumMD=e.MouseBehavior.Default
 
 --not "local function rs" to not assign debug names
+--table.concat is much faster than normal string concat
 local rs=function()
-	local s=""
+	local t={}
 	for i=1,mrandom(8,15) do
 		if mrandom(2)==2 then
-			s..=schar(mrandom(65,90))
+			t[i]=schar(mrandom(65,90))
 		else
-			s..=schar(mrandom(97,122))
+			t[i]=schar(mrandom(97,122))
 		end
 	end
-	return s
+	return tconcat(t)
 end
 
 --it runs even faster if u call __index and __newindex metamethods directly
@@ -127,7 +129,6 @@ local cg=FindFirstChildOfClass(game,"CoreGui")
 local lp=insGet(plrs,"LocalPlayer")
 local pg=FindFirstChildOfClass(lp,"PlayerGui")
 local mouse=insGet(lp,"GetMouse")(lp)
-local rst=insGet(plrs,"RespawnTime")+0.07 --1/15
 local preanimation=insGet(rus,"PreAnimation")
 local heartbeat=insGet(rus,"Heartbeat")
 local renderstepped=insGet(rus,"RenderStepped")
@@ -270,6 +271,8 @@ local makeplaceholder=function(v)
 	insSet(v,"Name",rs())
 	insSet(v,"Anchored",true)
 	insSet(v,"CanCollide",false)
+	insSet(v,"CanTouch",false)
+	insSet(v,"CanQuery",false)
 	insSet(v,"Transparency",0.25)
 	return v
 end
@@ -322,7 +325,7 @@ end
 local accessoryinfos={}
 local accessories={}
 local attachments={
-	[Enum.HumanoidRigType.R6]={
+	[e.HumanoidRigType.R6]={
 		RightShoulderAttachment={"Right Arm",cf(0,1,0,1,0,0,0,1,0,0,0,1)},
 		RightGripAttachment={"Right Arm",cf(0,-1,0,1,0,0,0,1,0,0,0,1)},
 		LeftFootAttachment={"Left Leg",cf(0,-1,0,1,0,0,0,1,0,0,0,1)},
@@ -343,7 +346,7 @@ local attachments={
 		FaceFrontAttachment={"Head",cf(0,0,-0.6,1,0,0,0,1,0,0,0,1)},
 		FaceCenterAttachment={"Head",cf(0,0,0,1,0,0,0,1,0,0,0,1)}
 	},
-	[Enum.HumanoidRigType.R15]={
+	[e.HumanoidRigType.R15]={
 		LeftAnkleRigAttachment={"LeftLowerLeg",cf(-0.000000179,0.101940,-0.000002,1,0,0,0,1,0,0,0,1)},
 		LeftFootAttachment={"LeftFoot",cf(0.018277,-0.153460,-0.050264,1,0,0,0,1,0,0,0,1)},
 		LeftElbowRigAttachment={"LeftLowerArm",cf(0.000479,0.258688,0,1,0,0,0,1,0,0,0,1)},
@@ -413,9 +416,9 @@ local fetchaccessories=function(c,t)
 		end
 		if typeof(accessory)=="Instance" then
 			local weld=i("Weld")
-			local handle=FindFirstChildWhichIsA(accessory,"BasePart")
-			local mesh=FindFirstChildOfClass(handle,"SpecialMesh")
-			local attachment=FindFirstChildOfClass(handle,"Attachment")
+			local handle=QueryDescendants(accessory,"BasePart")[1] or FindFirstChildWhichIsA(accessory,"BasePart")
+			local mesh=QueryDescendants(handle,"SpecialMesh")[1] or FindFirstChildOfClass(handle,"SpecialMesh")
+			local attachment=QueryDescendants(handle,"Attachment")[1] or FindFirstChildOfClass(handle,"Attachment")
 			local attachmentt=attachments[Humanoid.RigType][attachment.Name]
 
 			insSet(accessory,"Name","!"..insGet(accessory,"Name"))
@@ -449,6 +452,7 @@ local respawntp=nil
 local breakjointsmethod=nil
 local simrad=false
 local hidedeatheffect=nil
+local reclaim=nil
 
 local applysettings=function(t)
 	allowshiftlock=t.allowshiftlock or allowshiftlock
@@ -468,6 +472,7 @@ local applysettings=function(t)
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
 	hidedeatheffect=t.hidedeatheffect or hidedeatheffect
+	reclaim=t.reclaim or reclaim
 end
 
 local returnDelta=function() --deltaTime cuz im lazy asf
@@ -545,7 +550,8 @@ local reanimate=function()
 	local ctrlclicktp = ctrltp --makes you teleport where u point ur mouse cursor at when click and hold ctrl down
 	local clickfling = clickfling --makes you fling the person you clicked when its available to do so
 	local flingvel = v3(15000,16000,15000) --the rotation velocity that ur character will have while flinging
-	local dropvel = v3(0,50,0)
+	local dropvel = v3(0,50,0) --hatdrop velocity
+	local reclaimvel = v3(0,120,30) --hat reclaim velocity
 	
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
@@ -553,6 +559,7 @@ local reanimate=function()
 
 	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or timeQueryDescendants(c,">BasePart#HumanoidRootPart",10)[1] or FindFirstChildWhichIsA(c,"BasePart")
 	if not rootpart then return end
+	local IsGrounded=insGet(rootpart,"IsGrounded")
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -984,7 +991,7 @@ local reanimate=function()
 				if islp then
 					if discharscripts then
 						Connect(insGet(newc,"DescendantAdded"),discharscripts)
-						for i,v in next,QueryDescendants(newc,"Script") do
+						for i,v in next,QueryDescendants(newc,"Script,LocalScript") do
 							insSet(v,"Disabled",true)
 						end
 					end
@@ -1024,10 +1031,6 @@ local reanimate=function()
 									end
 									if vmagnitude(startpos-insGet(i,"Position"))>200 then
 										break
-									end
-									local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
-									if novoid and (cfGet(tcf,"Y")<novoid) then
-										tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
 									end
 									if instantfling then
 										local tcf=insGet(i,"CFrame")
@@ -1934,7 +1937,7 @@ local reanimate=function()
 					insSet(part,"CFrame",v)
 					insSet(part,"AssemblyAngularVelocity",v3_0)
 				else
-					if insGet(part,"ReceiveAge")==0 then
+					if not IsGrounded(part) and insGet(part,"ReceiveAge")==0 then
 						local placeholder=i.v
 						local vpos=cfGet(v,"Position")
 						if novoid and (v3Get(vpos,"Y")<novoid) then
@@ -2013,6 +2016,9 @@ local reanimate=function()
 								insSet(placeholder,"Parent",ws)
 								i.b=true
 							end
+						end
+						if reclaim then
+							insSet(part,"AssemblyLinearVelocity",reclaimvel)
 						end
 					end
 				end
