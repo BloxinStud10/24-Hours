@@ -448,7 +448,6 @@ local highlightflingtargets=nil
 local discharscripts=nil
 local flingchangestate=nil
 local flingmethod=1
-local instantfling=false
 local respawntp=nil
 local breakjointsmethod=nil
 local simrad=false
@@ -468,8 +467,7 @@ local applysettings=function(t)
 		end
 	end) or discharscripts
 	flingchangestate=t.flingchangestate or flingchangestate
-	flingmethod=(sethiddenproperty and t.flingmethod) or flingmethod
-	instantfling=(sethiddenproperty and t.instantfling) or instantfling
+	flingmethod=t.flingmethod or flingmethod
 	respawntp=t.respawntp or respawntp
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
@@ -622,6 +620,7 @@ local reanimate=function()
 
 	novoid=novoid and (fpdh+1)
 
+	local noVelMode=false
 	local Yvel=0
 	local cfr=insGet(rootpart,"CFrame")
 	local pos=cfGet(cfr,"Position")
@@ -820,7 +819,9 @@ local reanimate=function()
 					end
 				elseif setscriptable then
 					sethatstate=function(i,v)
-						setscriptable(i,"BackendAccoutrementState",true)
+						if not isscriptable(i,"BackendAccoutrementState") then
+							setscriptable(i,"BackendAccoutrementState",true)
+						end
 						insSet(i,"BackendAccoutrementState",v)
 					end
 				end
@@ -1005,18 +1006,14 @@ local reanimate=function()
 						local fi,fv=next(flingtable)
 						if fi then
 							local hum=FindFirstChildOfClass(c,"Humanoid")
-							if instantfling then
-								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
-							else
-								if hum then
-									if flingchangestate==3 then
-										insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
-										insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
-									elseif flingchangestate==1 then
-										insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
-									elseif flingchangestate==2 then
-										insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
-									end
+							if hum then
+								if flingchangestate==3 then
+									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+								elseif flingchangestate==1 then
+									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+								elseif flingchangestate==2 then
+									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
 								end
 							end
 							for i,v in next,tclone(flingtable) do
@@ -1035,46 +1032,18 @@ local reanimate=function()
 									if vmagnitude(startpos-insGet(i,"Position"))>200 then
 										break
 									end
-									if instantfling then
-										local tcf=insGet(i,"CFrame")
-										if novoid and (cfGet(tcf,"Y")<novoid) then
-											tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
-										end
-										insSet(hum,"PlatformStand",true)
-										insSet(hrp,"CFrame",tcf)
-										insSet(hrp,"AssemblyLinearVelocity",v3_0)
-										insSet(hrp,"AssemblyAngularVelocity",v3_0)
-										if sethiddenproperty then
-											sethiddenproperty(hum,"MoveDirectionInternal",v3_nan)
-										else
-											insGet(hum,"Move")(hum,v3_nan)
-										end
-										sethiddenproperty(hrp,"PhysicsRepRootPart",i)
-									else
-										local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
-										if novoid and (cfGet(tcf,"Y")<novoid) then
-											tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
-										end
-										insSet(hrp,"CFrame",tcf)
-										insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
-										insSet(hrp,"AssemblyAngularVelocity",flingvel)
+									local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
+									if novoid and (cfGet(tcf,"Y")<novoid) then
+										tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
 									end
+									insSet(hrp,"CFrame",tcf)
+									insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
+									insSet(hrp,"AssemblyAngularVelocity",flingvel)
 								end
 								if v then
 									Destroy(v)
 								end
 								flingtable[i]=nil
-							end
-							if instantfling then
-								insSet(hum,"PlatformStand",false)
-								if sethiddenproperty then
-									sethiddenproperty(hum,"MoveDirectionInternal",v3_0)
-								else
-									insGet(hum,"Move")(hum,v3_0)
-								end
-								if hrp then
-									sethiddenproperty(hrp,"PhysicsRepRootPart",nil)
-								end
 							end
 							insSet(hrp,"AssemblyLinearVelocity",v3_0)
 							insSet(hrp,"AssemblyAngularVelocity",v3_0)
@@ -1650,11 +1619,11 @@ local reanimate=function()
 				Yvel=0
 				pos+=v3_010*(v3Get(raycastresult.Position,"Y")+hhOff-v3Get(pos,"Y"))*min(delta*20,1)
 				if jumpingInput and (jumpPower>0) then
-					Yvel=jumpPower
+					Yvel=noVelMode and 0 or jumpPower
 					onground=false
 				end
 			else
-				Yvel=Yvel-gravity*delta
+				Yvel=noVelMode and 0 or Yvel-gravity*delta
 				raycastresult=v3Get(raycastresult.Position,"Y")
 				if v3Get(pos,"Y")+Yvel*delta<raycastresult then
 					Yvel=0
@@ -1696,7 +1665,7 @@ local reanimate=function()
 						noYvelTime=0
 					end
 				else
-					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
+					xzvel=noVelMode and v3_0 or vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
 						pos+=xzvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
@@ -1782,7 +1751,7 @@ local reanimate=function()
 						noYvelTime=0
 					end
 				else
-					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
+					xzvel=noVelMode and v3_0 or vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
 						pos+=xzvel*delta
 						cfr=cfl(pos,pos+camcfLV*v3_101)
@@ -1868,7 +1837,7 @@ local reanimate=function()
 						noYvelTime=0
 					end
 				else
-					xzvel=vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
+					xzvel=noVelMode and v3_0 or vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+vnormalize(camcfRV*v3_101)*RTmovement)*walkSpeed
 					if onground then
 						pos+=xzvel*delta
 						cfr=cfAdd(Lerp(cfGet(cfr,"Rotation"),cfl(v3_0,xzvel),deltaTime),pos)
@@ -2187,6 +2156,13 @@ local reanimate=function()
 	local setshiftlock=function(v) --turns on/off shiftlock
 		shiftlock=v
 	end
+	local setNoVelocity=function(b) --true if u want yo char to has no velocity
+		noVelMode=b
+		if b then
+			xzvel=v3_0
+			Yvel=0
+		end
+	end
 	local getWalkSpeed=function()
 		return walkSpeed
 	end
@@ -2230,13 +2206,11 @@ local reanimate=function()
 		if (not IsA(i,"Model")) or (i==c) or (IsDescendantOf(i,c)) then
 			return false
 		end
-		local targetpart=QueryDescendants(i,">BasePart#HumanoidRootPart")[1] or QueryDescendants(i,">BasePart#Torso")[1] or QueryDescendants(i,">BasePart#UpperTorso")[1]
-		if (not targetpart) or (flingtable[targetpart]==nil) then
-			return false
-		end
-		for p,b in next,flingtable do
-			if IsDescendantOf(i,p) then
-				return true
+		if i then
+			for p,b in next,flingtable do
+				if IsDescendantOf(i,p) then
+					return true
+				end
 			end
 		end
 		return false
@@ -2278,6 +2252,7 @@ local reanimate=function()
 		setCamCF=setCamCF,
 		setshiftlock=setshiftlock,
 		setCameraMoveable=setCameraMoveable,
+		setNoVelocity=setNoVelocity,
 		getWalkSpeed=getWalkSpeed,
 		getJumpPower=getJumpPower,
 		getHipHeight=getHipHeight,
