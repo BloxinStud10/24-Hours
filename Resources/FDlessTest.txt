@@ -1,9 +1,11 @@
 --!optimize 2
 --[[
 	FDless reanimate by MyWorld
-	From Patchma Hub V52b [Test]
+	From Patchma Hub [Test]
+	Version 53E (E is only here cuz i made my own update, maybe)
 	
-	revive the goat or let others take over that is the question
+	patch patch patch sahur
+	im just doing my own update atp...
 	
 	discord.gg/QMy5f6DrbH
 	
@@ -65,7 +67,6 @@ local cf_0=cf()
 local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
-local v3_nan=v3_0/0
 
 local enumMD=e.MouseBehavior.Default
 
@@ -416,9 +417,9 @@ local fetchaccessories=function(c,t)
 		end
 		if typeof(accessory)=="Instance" then
 			local weld=i("Weld")
-			local handle=QueryDescendants(accessory,"BasePart")[1] or FindFirstChildWhichIsA(accessory,"BasePart")
-			local mesh=QueryDescendants(handle,"SpecialMesh")[1] or FindFirstChildOfClass(handle,"SpecialMesh")
-			local attachment=QueryDescendants(handle,"Attachment")[1] or FindFirstChildOfClass(handle,"Attachment")
+			local handle=QueryDescendants(accessory,">BasePart")[1] or FindFirstChildWhichIsA(accessory,"BasePart")
+			local mesh=QueryDescendants(handle,">SpecialMesh")[1] or FindFirstChildOfClass(handle,"SpecialMesh")
+			local attachment=QueryDescendants(handle,">Attachment")[1] or FindFirstChildOfClass(handle,"Attachment")
 			local attachmentt=attachments[Humanoid.RigType][attachment.Name]
 
 			insSet(accessory,"Name","!"..insGet(accessory,"Name"))
@@ -560,6 +561,7 @@ local reanimate=function()
 	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or timeQueryDescendants(c,">BasePart#HumanoidRootPart",10)[1] or FindFirstChildWhichIsA(c,"BasePart")
 	if not rootpart then return end
 	local IsGrounded=insGet(rootpart,"IsGrounded")
+	local ApplyImpulse=insGet(rootpart,"ApplyImpulse")
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -995,7 +997,7 @@ local reanimate=function()
 				if islp then
 					if discharscripts then
 						Connect(insGet(newc,"DescendantAdded"),discharscripts)
-						for i,v in next,QueryDescendants(newc,"Script,LocalScript") do
+						for i,v in next,QueryDescendants(newc,"LocalScript,Script[RunContext=Client]") do
 							insSet(v,"Disabled",true)
 						end
 					end
@@ -2000,6 +2002,7 @@ local reanimate=function()
 						if reclaim then
 							insSet(part,"CFrame",cfAdd(v,v3_010*6))
 							insSet(part,"AssemblyLinearVelocity",reclaimvel)
+							ApplyImpulse(part,reclaimvel)
 						end
 					end
 				end
