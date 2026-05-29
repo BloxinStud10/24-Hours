@@ -779,11 +779,11 @@ local reanimate=function()
 				end
 			end
 		end
-		local p={m=m,t=t}
-		cframes[p]=cfr
-		local j={C0=cf_0,C1=cf_0,Part0=p}
-		p.j=j
 		if not ignore then
+			local p={m=m,t=t}
+			cframes[p]=cfr
+			local j={C0=cf_0,C1=cf_0,Part0=p}
+			p.j=j
 			return p
 		end
 	end
