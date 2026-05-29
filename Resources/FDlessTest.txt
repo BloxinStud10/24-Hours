@@ -754,16 +754,18 @@ local reanimate=function()
 		return nil
 	end
 
-	local getJoint=function(name)
+	local getJoint=function(name,ignore)
 		for i,v in next,joints do
 			if v.Name==name then
 				return v
 			end
 		end
-		return {C0=cf_0,C1=cf_0}
+		if not ignore then
+			return {C0=cf_0,C1=cf_0}
+		end
 	end
 
-	local getPartFromMesh=function(m,t,blacklist)
+	local getPartFromMesh=function(m,t,blacklist,ignore)
 		if blacklist then
 			for v,_ in next,cframes do
 				if v.m and (not tfind(blacklist,v)) and sfind(v.m,m) and sfind(v.t,t) then
@@ -781,7 +783,9 @@ local reanimate=function()
 		cframes[p]=cfr
 		local j={C0=cf_0,C1=cf_0,Part0=p}
 		p.j=j
-		return p
+		if not ignore then
+			return p
+		end
 	end
 
 	local getPartJoint=function(p)
