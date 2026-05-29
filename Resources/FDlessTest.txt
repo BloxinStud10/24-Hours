@@ -622,6 +622,7 @@ local reanimate=function()
 
 	novoid=novoid and (fpdh+1)
 
+	local secrets={}
 	local noVelMode=false
 	local Yvel=0
 	local cfr=insGet(rootpart,"CFrame")
@@ -984,6 +985,7 @@ local reanimate=function()
 
 	local simradv=0
 	local enumH=e.CoreGuiType.Health
+	local refreshf=nil
 	local onplayer=function(v)
 		simradv+=1000
 		local islp=v==lp
@@ -1170,6 +1172,9 @@ local reanimate=function()
 						end
 					else
 						insGet(newc,"BreakJoints")(newc)
+					end
+					if refreshf then
+						tspawn(refreshf)
 					end
 					if flingmethod==1 then
 						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
@@ -2221,8 +2226,16 @@ local reanimate=function()
 	local setCameraMoveable=function(v) --make camera movement to true or false
 		cameraMoveable=v
 	end
+	local onRefresh=function(f)
+		if type(f)=="function" then
+			refreshf=f
+		end
+	end
 	local enableKeyCode=function(a,b) --enable/disable specific KeyCode (for reanimation)
 		blockedKeys[a]=b
+	end
+	local addSecrets=function(t)
+		
 	end
 
 	return {
@@ -2268,7 +2281,9 @@ local reanimate=function()
 		isWalking=isWalking,
 		isFlinging=isFlinging,
 		setHipHeight=setHipHeight,
-		enableKeyCode=enableKeyCode
+		onRefresh=onRefresh,
+		enableKeyCode=enableKeyCode,
+		addSecrets=addSecrets
 	}
 end
 
