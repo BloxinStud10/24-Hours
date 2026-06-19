@@ -2,7 +2,7 @@
 --[[
 	FDless reanimate by MyWorld
 	From Patchma Hub [Test]
-	Version 53E (E is only here cuz i made my own update, maybe)
+	Version 54E (E is only here cuz i made my own update, maybe)
 	
 	patch patch patch sahur
 	im just doing my own update atp...
@@ -36,15 +36,19 @@ local vnormalize=vector.normalize --faster than indexing with Unit
 
 --the script doesnt have to read global varaibles every time to get them
 --why not have them saved in local varaibles for faster access times
+local IsGrounded=nil
+local ApplyImpulse=nil
 local next=next
 local pcall=pcall
 local xpcall=xpcall
 local type=type
 local typeof=typeof
 local game=game
-local replicatesignal=replicatesignal
 local sethiddenproperty=sethiddenproperty
 local setscriptable=setscriptable
+local isnetworkowner=isnetworkowner or function(p)
+	return (not IsGrounded(p)) and insGet(p,"ReceiveAge")==0
+end
 
 local i=Instance.new 
 local u2=UDim2.new
@@ -149,46 +153,47 @@ local IsKeyDown=insGet(uis,"IsKeyDown")
 
 local Inverse=cfGet(cf_0,"Inverse")
 local Lerp=cfGet(cf_0,"Lerp")
+local ToEulerAnglesYXZ=cfGet(cf_0,"ToEulerAnglesYXZ")
 
 local accessorylimbs={
-	{meshid="117287001096396",textureid="",C0=cf_0,Name="Left Arm"},
-	{meshid="117287001096396",textureid="",C0=cf_0,Name="Right Arm"},
+	{meshid="117287001096396",C0=cf_0,Name="Left Arm"},
+	{meshid="117287001096396",C0=cf_0,Name="Right Arm"},
 
-	{meshid="90736849096372",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="105141400603933",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="90736849096372",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="105141400603933",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
 
 	{meshid="11263221350",textureid="11263219250",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Arm"},
 	{meshid="11159370334",textureid="11159284657",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Arm"},
 
-	{meshid="14255522247",textureid="",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="14255522247",textureid="",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="14255522247",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="14255522247",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Arm"},
 
-	{meshid="17374767929",textureid="",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="17374767929",textureid="",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="17374767929",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="17374767929",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Arm"},
 
-	{meshid="12344207333",textureid="",C0=angles(2,0,0),Name="Left Arm"},
-	{meshid="12344206657",textureid="",C0=angles(2,0,0),Name="Right Arm"},
+	{meshid="12344207333",C0=angles(2,0,0),Name="Left Arm"},
+	{meshid="12344206657",C0=angles(2,0,0),Name="Right Arm"},
 
-	{meshid="13831073174",textureid="",C0=cf(0.017,0,-0.23)*angles(-1.4835298641951802,-0.15707963267948966,2.199114857512855),Name="Left Arm"},
-	{meshid="13839903766",textureid="",C0=cf(0,-0.62,-0.01)*angles(1.6580627893946132,0.15707963267948966,-2.199114857512855),Name="Right Arm"},
+	{meshid="13831073174",C0=cf(0.017,0,-0.23)*angles(-1.4835298641951802,-0.15707963267948966,2.199114857512855),Name="Left Arm"},
+	{meshid="13839903766",C0=cf(0,-0.62,-0.01)*angles(1.6580627893946132,0.15707963267948966,-2.199114857512855),Name="Right Arm"},
 
-	{meshid="121304376791439",textureid="",C0=cf_0,Name="Left Leg"},
-	{meshid="121304376791439",textureid="",C0=cf_0,Name="Right Leg"},
+	{meshid="121304376791439",C0=cf_0,Name="Left Leg"},
+	{meshid="121304376791439",C0=cf_0,Name="Right Leg"},
 
 	{meshid="11159370334",textureid="11159285454",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Leg"},
 	{meshid="12652772399",textureid="12652775021",C0=cf(0,-0.125,0),Name="Right Leg"},
 
-	{meshid="14768684979",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
-	{meshid="14768684979",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
+	{meshid="14768684979",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
+	{meshid="14768684979",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
 
-	{meshid="17387586286",textureid="",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Leg"},
-	{meshid="17387586286",textureid="",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Leg"},
+	{meshid="17387586286",C0=angles(1.5707963267948966,0,1.5707963267948966),Name="Left Leg"},
+	{meshid="17387586286",C0=angles(-1.5707963267948966,0,1.5707963267948966),Name="Right Leg"},
 	
-	{meshid="18640899369",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="18640901641",textureid="",C0=cf_0,Name="Left Leg"},
-	{meshid="18640901641",textureid="",C0=cf_0,Name="Right Leg"},
-	{meshid="18640914129",textureid="",C0=cf_0,Name="Left Arm"},
-	{meshid="18640914129",textureid="",C0=cf_0,Name="Right Arm"},
+	{meshid="18640899369",C0=cf_0,Name="Torso"},
+	{meshid="18640901641",C0=cf_0,Name="Left Leg"},
+	{meshid="18640901641",C0=cf_0,Name="Right Leg"},
+	{meshid="18640914129",C0=cf_0,Name="Left Arm"},
+	{meshid="18640914129",C0=cf_0,Name="Right Arm"},
 	
 	{meshid="90736849096372",textureid="79186624401216",C0=cf_0,Name="Right Arm"},
 	{meshid="105141400603933",textureid="71060417496309",C0=cf_0,Name="Left Arm"},
@@ -201,34 +206,34 @@ local accessorylimbs={
 	{meshid="125405780718494",textureid="136752500636691",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
 	{meshid="125405780718494",textureid="136752500636691",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
 	
-	{meshid="126825022897778",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
-	{meshid="",textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
-	{meshid="",textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
+	{meshid="126825022897778",C0=cf_0,Name="Torso"},
+	{textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
+	{textureid="135650240593878",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
+	{textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
+	{textureid="73798034827573",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
 	
-	{meshid="14768666349",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="14241018198",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="13421774668",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="110684113028749",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="127552124837034",textureid="",C0=angles(0,0,1.5707963267948966),Name="Torso"},
+	{meshid="14768666349",C0=cf_0,Name="Torso"},
+	{meshid="14241018198",C0=cf_0,Name="Torso"},
+	{meshid="13421774668",C0=cf_0,Name="Torso"},
+	{meshid="110684113028749",C0=cf_0,Name="Torso"},
+	{meshid="127552124837034",C0=angles(0,0,1.5707963267948966),Name="Torso"},
 
-	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5271630954950384,-1.5707963267948966,0),cf(0.05,0.2,0)),Name="Right Arm"},
-	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5271630954950384,1.5707963267948966,0),cf(-0.05,0.2,0)),Name="Left Arm"},
-	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5707963267948966,-1.5707963267948966,0),cf(-0.1,0.25,0)),Name="Right Leg"},
-	{meshid="3030546036",textureid="",C0=cfMul(angles(-1.5707963267948966,1.5707963267948966,0),cf(0.1,0.25,0)),Name="Left Leg"},
+	{meshid="3030546036",C0=cfMul(angles(-1.5271630954950384,-1.5707963267948966,0),cf(0.05,0.2,0)),Name="Right Arm"},
+	{meshid="3030546036",C0=cfMul(angles(-1.5271630954950384,1.5707963267948966,0),cf(-0.05,0.2,0)),Name="Left Arm"},
+	{meshid="3030546036",C0=cfMul(angles(-1.5707963267948966,-1.5707963267948966,0),cf(-0.1,0.25,0)),Name="Right Leg"},
+	{meshid="3030546036",C0=cfMul(angles(-1.5707963267948966,1.5707963267948966,0),cf(0.1,0.25,0)),Name="Left Leg"},
 	{meshid="4819720316",textureid="4819722776",C0=angles(0,0,0.2617993877991494),Name="Torso"},
 	
-	{meshid="139792224823925",textureid="",C0=cf_0,Name="Torso"},
-	{meshid="105263225400272",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
-	{meshid="105263225400272",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
-	{meshid="83395427313429",textureid="",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
-	{meshid="83395427313429",textureid="",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
+	{meshid="139792224823925",C0=cf_0,Name="Torso"},
+	{meshid="105263225400272",C0=angles(0,0,1.5707963267948966),Name="Right Arm"},
+	{meshid="105263225400272",C0=angles(0,0,1.5707963267948966),Name="Left Arm"},
+	{meshid="83395427313429",C0=angles(0,0,1.5707963267948966),Name="Right Leg"},
+	{meshid="83395427313429",C0=angles(0,0,1.5707963267948966),Name="Left Leg"},
 	
-	{meshid="",textureid="97155254696037",C0=angles(1.7671458676442586,-0.16580627893946132,0.39269908169872414),Name="Right Arm"},
-	{meshid="",textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
-	{meshid="",textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
-	{meshid="",textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
+	{textureid="97155254696037",C0=angles(1.7671458676442586,-0.16580627893946132,0.39269908169872414),Name="Right Arm"},
+	{textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
+	{textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
+	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
 }
 
 --querydescendants faster than getchildren and checks in lua
@@ -448,7 +453,6 @@ local clickfling=nil
 local highlightflingtargets=nil
 local discharscripts=nil
 local flingchangestate=nil
-local flingmethod=1
 local respawntp=nil
 local breakjointsmethod=nil
 local simrad=false
@@ -468,7 +472,6 @@ local applysettings=function(t)
 		end
 	end) or discharscripts
 	flingchangestate=t.flingchangestate or flingchangestate
-	flingmethod=t.flingmethod or flingmethod
 	respawntp=t.respawntp or respawntp
 	breakjointsmethod=t.breakjointsmethod or breakjointsmethod
 	simrad=t.simrad or simrad
@@ -551,17 +554,11 @@ local reanimate=function()
 	local ctrlclicktp = ctrltp --makes you teleport where u point ur mouse cursor at when click and hold ctrl down
 	local clickfling = clickfling --makes you fling the person you clicked when its available to do so
 	local flingvel = v3(15000,16000,15000) --the rotation velocity that ur character will have while flinging
-	local dropvel = v3(0,50,0) --hatdrop velocity
 	local reclaimvel = v3(0,120,30) --hat reclaim velocity
 	
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
 	if not (c and IsDescendantOf(c,ws)) then return end
-
-	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or timeQueryDescendants(c,">BasePart#HumanoidRootPart",10)[1] or FindFirstChildWhichIsA(c,"BasePart")
-	if not rootpart then return end
-	local IsGrounded=insGet(rootpart,"IsGrounded")
-	local ApplyImpulse=insGet(rootpart,"ApplyImpulse")
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -619,13 +616,24 @@ local reanimate=function()
 	tinsert(cleantable,Connect(GetPropertyChangedSignal(ws,"Gravity"),function()
 		velYdelta=insGet(ws,"Gravity")*0.025
 	end))
+	
+	local cfr=nil
+	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or FindFirstChildWhichIsA(c,"BasePart")
+	if rootpart then
+		cfr=insGet(rootpart,"CFrame")
+		if not IsGrounded then IsGrounded=insGet(rootpart,"IsGrounded") end
+		if not ApplyImpulse then ApplyImpulse=insGet(rootpart,"ApplyImpulse") end
+	else
+		cfr=cfAdd(insGet(cam,"Focus"),v3_010*-1.5)
+		if not IsGrounded then pcall(function() local i=i("Part") IsGrounded=insGet(i,"IsGrounded") Destroy(i) end) end
+		if not ApplyImpulse then pcall(function() local i=i("Part") ApplyImpulse=insGet(i,"ApplyImpulse") Destroy(i) end) end
+	end
 
 	novoid=novoid and (fpdh+1)
 
 	local secrets={}
 	local noVelMode=false
 	local Yvel=0
-	local cfr=insGet(rootpart,"CFrame")
 	local pos=cfGet(cfr,"Position")
 	cfr=cfl(pos,pos+cfGet(cfr,"LookVector")*v3_101)
 	local primarypart=nil
@@ -636,7 +644,7 @@ local reanimate=function()
 	local v3_0150=v3_010*1.5
 	local camcfLV=cfGet(camcf,"LookVector")
 	local camrot=cfl(v3_0,camcfLV)
-	local camrotX,camrotY=camrot:ToEulerAnglesYXZ()
+	local camrotX,camrotY=ToEulerAnglesYXZ(camrot)
 	local camcfRV=cfGet(camrot,"RightVector")
 	local cammag=-vmagnitude((cfGet(camcf,"Position")-(pos+v3_0150)))
 
@@ -751,7 +759,6 @@ local reanimate=function()
 				end
 			end
 		end
-		return nil
 	end
 
 	local getJoint=function(name,ignore)
@@ -805,35 +812,46 @@ local reanimate=function()
 				end
 			end
 		end
-		return nil
 	end
-
+	
 	local getAccWeldFromMesh=function(m,t)
 		return getPartJoint(getPartFromMesh(m,t))
 	end
 	
-	local sethatstate=emptyfunction
-	if flingmethod==2 then
-		sethatstate=function(i,v)
-			if pcall(insSet,i,"BackendAccoutrementState",v) then
-				sethatstate=function(i,v)
-					insSet(i,"BackendAccoutrementState",v)
+	local getPartsFromMesh=function(m,t,blacklist,ignore)
+		local t={}
+		if blacklist then
+			for v,_ in next,cframes do
+				if v.m and (not tfind(blacklist,v)) and sfind(v.m,m) and sfind(v.t,t) then
+					tinsert(t,v)
 				end
-			else
-				if sethiddenproperty then
-					sethatstate=function(i,v)
-						sethiddenproperty(i,"BackendAccoutrementState",v)
-					end
-				elseif setscriptable then
-					sethatstate=function(i,v)
-						if not isscriptable(i,"BackendAccoutrementState") then
-							setscriptable(i,"BackendAccoutrementState",true)
-						end
-						insSet(i,"BackendAccoutrementState",v)
-					end
+			end
+		else
+			for v,_ in next,cframes do
+				if v.m and sfind(v.m,m) and sfind(v.t,t) then
+					tinsert(t,v)
 				end
 			end
 		end
+		if not ignore then
+			local p={m=m,t=t}
+			cframes[p]=cfr
+			local j={C0=cf_0,C1=cf_0,Part0=p}
+			p.j=j
+			tinsert(t,p)
+		end
+		return t
+	end
+	
+	local getAccWeldsFromMesh=function(m,t)
+		local t={}
+		for i,p in next,getPartsFromMesh(m,t) do
+			local w=getPartJoint(p)
+			if w then
+				tinsert(t,w)
+			end
+		end
+		return t
 	end
 
 	local raycastparams=rp()
@@ -855,6 +873,12 @@ local reanimate=function()
 	local rootparts={}
 	for i,v in next,accessorylimbs do
 		v.p=getPart(v.Name)
+		if not v.meshid then
+			v.meshid=""
+		end 
+		if not v.textureid then
+			v.textureid=""
+		end 
 	end
 	local makePartCons=function(p,t)
 		if (t.p==p) and insGet(p,"Anchored") then
@@ -959,33 +983,6 @@ local reanimate=function()
 			end
 		end
 	end
-	local onaccoutrements=function(v)
-		if c and IsA(v,"Accoutrement") and IsDescendantOf(c,ws) then
-			sethatstate(v,0)
-			local con0=Connect(insGet(v,"Changed"),function(p)
-				sethatstate(v,0)
-			end)
-			
-			local handle=FindFirstChildWhichIsA(v,"BasePart")
-			if handle then
-				insSet(handle,"AssemblyLinearVelocity",dropvel)
-				insSet(handle,"AssemblyAngularVelocity",v3_0)
-				Connect(GetPropertyChangedSignal(handle,"CanCollide"),function()
-					print(v,"-",insGet(handle,"CanCollide"))
-				end)
-			end
-			
-			if dropprimarypart then
-				local con1=nil
-				con1=Connect(insGet(dropprimarypart,"AncestryChanged"),function()
-					Disconnect(con0)
-					Disconnect(con1)
-					
-					sethatstate(v,4)
-				end)
-			end
-		end
-	end
 
 	local simradv=0
 	local enumH=e.CoreGuiType.Health
@@ -1010,139 +1007,97 @@ local reanimate=function()
 					local hrp=timeQueryDescendants(newc,">BasePart#HumanoidRootPart",10)[1]
 					if not (hrp and c and IsDescendantOf(newc,ws)) then return end
 					c=newc
-					if flingmethod==1 then
-						local fi,fv=next(flingtable)
-						if fi then
-							local hum=FindFirstChildOfClass(c,"Humanoid")
-							if hum then
-								if flingchangestate==3 then
-									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
-									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
-								elseif flingchangestate==1 then
-									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
-								elseif flingchangestate==2 then
-									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
-								end
+					local fi,fv=next(flingtable)
+					if fi then
+						local hum=FindFirstChildOfClass(c,"Humanoid")
+						if hum then
+							if flingchangestate==3 then
+								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+							elseif flingchangestate==1 then
+								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+							elseif flingchangestate==2 then
+								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
 							end
-							for i,v in next,tclone(flingtable) do
-								if not c then
-									return
-								end
-								local startpos=insGet(i,"Position")
-								local stoptime=sine+3
-								while Wait(heartbeat) do
-									if sine>stoptime then
-										break
-									end
-									if IsGrounded(i) or not IsDescendantOf(i,ws) then
-										break
-									end
-									if vmagnitude(startpos-insGet(i,"Position"))>200 then
-										break
-									end
-									local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
-									if novoid and (cfGet(tcf,"Y")<novoid) then
-										tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
-									end
-									insSet(hrp,"CFrame",tcf)
-									insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
-									insSet(hrp,"AssemblyAngularVelocity",flingvel)
-								end
-								if v then
-									Destroy(v)
-								end
-								flingtable[i]=nil
-							end
-							insSet(hrp,"AssemblyLinearVelocity",v3_0)
-							insSet(hrp,"AssemblyAngularVelocity",v3_0)
-							insSet(hrp,"CFrame",cfr)
-							twait(0.25)
 						end
-					end
-					if flingmethod==1 then
-						if respawntp==0 then
-							twait()
-						elseif respawntp==1 then
-							local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
-							local dir=nil
-							local poscheck=true
-							while poscheck do
-								poscheck=false
-								for i,v in next,rootparts do
-									local diff=(startpos-insGet(v,"Position"))*v3_101
-									if vmagnitude(diff)<10 then
-										poscheck=true
-										dir=dir or (vnormalize(diff)*3)
-										startpos+=dir
-									end
+						for i,v in next,tclone(flingtable) do
+							if not c then
+								return
+							end
+							local startpos=insGet(i,"Position")
+							local stoptime=sine+3
+							while Wait(heartbeat) do
+								if sine>stoptime then
+									break
 								end
-								local diff=(startpos-pos)*v3_101
+								if IsGrounded(i) or not IsDescendantOf(i,ws) then
+									break
+								end
+								if vmagnitude(startpos-insGet(i,"Position"))>200 then
+									break
+								end
+								local tcf=cfAdd(insGet(i,"CFrame"),insGet(i,"AssemblyLinearVelocity")*(sin(sine*15)+1))
+								if novoid and (cfGet(tcf,"Y")<novoid) then
+									tcf=cfAdd(tcf,v3_010*(novoid-cfGet(tcf,"Y")))
+								end
+								insSet(hrp,"CFrame",tcf)
+								insSet(hrp,"AssemblyLinearVelocity",insGet(i,"AssemblyLinearVelocity")*v3_101*75)
+								insSet(hrp,"AssemblyAngularVelocity",flingvel)
+							end
+							if v then
+								Destroy(v)
+							end
+							flingtable[i]=nil
+						end
+						insSet(hrp,"AssemblyLinearVelocity",v3_0)
+						insSet(hrp,"AssemblyAngularVelocity",v3_0)
+						insSet(hrp,"CFrame",cfr)
+						twait(0.25)
+					end
+					if respawntp==0 then
+						twait()
+					elseif respawntp==1 then
+						local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
+						local dir=nil
+						local poscheck=true
+						while poscheck do
+							poscheck=false
+							for i,v in next,rootparts do
+								local diff=(startpos-insGet(v,"Position"))*v3_101
 								if vmagnitude(diff)<10 then
 									poscheck=true
 									dir=dir or (vnormalize(diff)*3)
 									startpos+=dir
 								end
 							end
-							startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
-							insSet(hrp,"CFrame",startpos)
-							insSet(hrp,"AssemblyLinearVelocity",v3_0)
-							insSet(hrp,"AssemblyAngularVelocity",v3_0)
-							twait(0.25)
-						elseif respawntp==2 then
-							insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
-							insSet(hrp,"AssemblyLinearVelocity",v3_0)
-							insSet(hrp,"AssemblyAngularVelocity",v3_0)
-							twait(0.25)
-						elseif respawntp==3 then
-							local t=osclock()+0.25
-							local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
-							while Wait(heartbeat) do
-								insSet(hrp,"CFrame",startcf)
-								insSet(hrp,"AssemblyLinearVelocity",v3_0)
-								insSet(hrp,"AssemblyAngularVelocity",v3_0)
-								if osclock()>t then
-									break
-								end
+							local diff=(startpos-pos)*v3_101
+							if vmagnitude(diff)<10 then
+								poscheck=true
+								dir=dir or (vnormalize(diff)*3)
+								startpos+=dir
 							end
 						end
-					elseif flingmethod==2 then
-						insSet(ws,"FallenPartsDestroyHeight",nan)
-						dropprimarypart=QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or hrp or insGet(c,"PrimaryPart")
-						local hum=FindFirstChildOfClass(c,"Humanoid")
+						startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
+						insSet(hrp,"CFrame",startpos)
+						insSet(hrp,"AssemblyLinearVelocity",v3_0)
+						insSet(hrp,"AssemblyAngularVelocity",v3_0)
+						twait(0.25)
+					elseif respawntp==2 then
+						insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
+						insSet(hrp,"AssemblyLinearVelocity",v3_0)
+						insSet(hrp,"AssemblyAngularVelocity",v3_0)
+						twait(0.25)
+					elseif respawntp==3 then
 						local t=osclock()+0.25
-						local startcf=cf(pos*v3_101+v3_010*(fpdh-0.7))
-						if hum then
-							local isR6=insGet(hum,"RigType")==e.HumanoidRigType.R6
-							for i,v in next,insGet(hum,"GetPlayingAnimationTracks")(hum) do
-								insGet(v,"Stop")(v)
-							end
-							local anim=i("Animation")
-							insSet(anim,"AnimationId",isR6 and "rbxassetid://313762630" or "rbxassetid://855685476")
-							insSet(anim,"Name",rs())
-							insSet(anim,"Parent",c)
-							local animtrack=insGet(hum,"LoadAnimation")(hum,anim)
-							if animtrack then
-								insSet(animtrack,"Looped",true)
-								insSet(animtrack,"Priority",e.AnimationPriority.Action4)
-								insGet(animtrack,"Play")(animtrack,0,5,0)
-								insSet(animtrack,"TimePosition",1)
-							end
-							if not isR6==e.HumanoidRigType.R15 then
-								startcf=cfMul(startcf,angles(0.3490658503988659,0,0))
-							end
-						end
+						local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
 						while Wait(heartbeat) do
-							if not hrp then
-								break
-							end
 							insSet(hrp,"CFrame",startcf)
-							insSet(hrp,"AssemblyLinearVelocity",dropvel)
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
 							insSet(hrp,"AssemblyAngularVelocity",v3_0)
 							if osclock()>t then
 								break
 							end
 						end
-						insSet(ws,"FallenPartsDestroyHeight",fpdh)
 					end
 					if newc~=c then
 						return
@@ -1157,9 +1112,6 @@ local reanimate=function()
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
-							if replicatesignal then
-								replicatesignal(insGet(h,"ServerBreakJoints"))
-							end
 						end
 					elseif breakjointsmethod==1 then
 						insGet(newc,"BreakJoints")(newc)
@@ -1180,17 +1132,9 @@ local reanimate=function()
 					if refreshf then
 						tspawn(refreshf)
 					end
-					if flingmethod==1 then
-						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
-						for i,v in next,QueryDescendants(newc,"Attachment") do
-							ondes(v)
-						end
-					elseif flingmethod==2 then
-						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),function(v) ondes(v) onaccoutrements(v) end)
-						for i,v in next,QueryDescendants(newc,"Attachment,Accoutrement") do
-							ondes(v)
-							onaccoutrements(v)
-						end
+					cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
+					for i,v in next,QueryDescendants(newc,"Attachment") do
+						ondes(v)
 					end
 				else
 					local hrp=timeQueryDescendants(newc,">BasePart#HumanoidRootPart",10)
@@ -1928,7 +1872,7 @@ local reanimate=function()
 					insSet(part,"CFrame",v)
 					insSet(part,"AssemblyAngularVelocity",v3_0)
 				else
-					if not IsGrounded(part) and insGet(part,"ReceiveAge")==0 then
+					if isnetworkowner(part) then
 						local placeholder=i.v
 						local vpos=cfGet(v,"Position")
 						if novoid and (v3Get(vpos,"Y")<novoid) then
@@ -2126,13 +2070,14 @@ local reanimate=function()
 		gravity=n
 	end
 	local setCfr=function(v) --sets character cframe
-		if typeof(v)=="CFrame" then
+		local type=typeof(v)
+		if type=="CFrame" then
 			local newpos=cfGet(v,"Position")
 			camcf=cfAdd(camcf,newpos-pos)
 			insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
 			cfr=v
 			pos=newpos
-		elseif typeof(v)=="Vector3" then
+		elseif type=="Vector3" then
 			camcf=cfAdd(camcf,v-pos)
 			insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
 			cfr=cfAdd(cfGet(cfr,"Rotation"),v)
@@ -2140,25 +2085,27 @@ local reanimate=function()
 		end
 	end
 	local setCamCF=function(v) --sets camera cframe offset
-		if typeof(v)=="CFrame" then
+		local type=typeof(v)
+		if type=="CFrame" then
 			camoff=v
-		elseif typeof(v)=="Vector3" then
+		elseif type=="Vector3" then
 			camoff=cf(v)
 		end
 	end
 	local setCamScriptableCF=function(v) --sets camera cframe freely (set nil to set back to normal)
-		if typeof(v)=="CFrame" then
+		local type=typeof(v)
+		if type=="CFrame" then
 			scriptablecamcf=v
 			camcfLV=cfGet(scriptablecamcf,"LookVector")
 			camrot=cfl(v3_0,camcfLV)
-			camrotX,camrotY=camrot:ToEulerAnglesYXZ()
+			camrotX,camrotY=ToEulerAnglesYXZ(camrot)
 			camcfRV=cfGet(camrot,"RightVector")
 			cammag=-vmagnitude((cfGet(scriptablecamcf,"Position")-(pos+v3_0150)))
-		elseif typeof(v)=="Vector3" then
+		elseif type=="Vector3" then
 			scriptablecamcf=cf(v)
 			camcfLV=cfGet(scriptablecamcf,"LookVector")
 			camrot=cfl(v3_0,camcfLV)
-			camrotX,camrotY=camrot:ToEulerAnglesYXZ()
+			camrotX,camrotY=ToEulerAnglesYXZ(camrot)
 			camcfRV=cfGet(camrot,"RightVector")
 			cammag=-vmagnitude((cfGet(scriptablecamcf,"Position")-(pos+v3_0150)))
 		else
@@ -2198,6 +2145,9 @@ local reanimate=function()
 	end
 	local isFirstPerson=function() --returns true if user is in first person camera mode
 		return firstperson
+	end
+	local isShiftlock=function() --returns true if user is on shiftlock mode
+		return shiftlock
 	end
 	local isOnGround=function() --returns true if character is on ground
 		return onground
@@ -2260,6 +2210,8 @@ local reanimate=function()
 		getPart=getPart,
 		getPartFromMesh=getPartFromMesh,
 		getAccWeldFromMesh=getAccWeldFromMesh,
+		getPartsFromMesh=getPartsFromMesh,
+		getAccWeldsFromMesh=getAccWeldsFromMesh,
 		getJoint=getJoint,
 		getPartJoint=getPartJoint,
 		rotToMouse=rotToMouse,
@@ -2281,6 +2233,7 @@ local reanimate=function()
 		getCamCF=getCamCF,
 		setCamScriptableCF=setCamScriptableCF,
 		isFirstPerson=isFirstPerson,
+		isShiftlock=isShiftlock,
 		isOnGround=isOnGround,
 		isWalking=isWalking,
 		isFlinging=isFlinging,
