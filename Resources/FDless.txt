@@ -2126,6 +2126,4 @@ local reanimate=function()
 	}
 end
 
-reanimate()
-
 return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction}
