@@ -36,8 +36,6 @@ local vnormalize=vector.normalize --faster than indexing with Unit
 
 --the script doesnt have to read global varaibles every time to get them
 --why not have them saved in local varaibles for faster access times
-local IsGrounded=nil
-local ApplyImpulse=nil
 local next=next
 local pcall=pcall
 local xpcall=xpcall
@@ -46,9 +44,6 @@ local typeof=typeof
 local game=game
 local sethiddenproperty=sethiddenproperty
 local setscriptable=setscriptable
-local isnetworkowner=isnetworkowner or function(p)
-	return (not IsGrounded(p)) and insGet(p,"ReceiveAge")==0
-end
 
 local i=Instance.new 
 local u2=UDim2.new
@@ -131,6 +126,7 @@ local uis=FindFirstChildOfClass(game,"UserInputService")
 local gs=FindFirstChildOfClass(game,"GuiService")
 local sg=FindFirstChildOfClass(game,"StarterGui")
 local cg=FindFirstChildOfClass(game,"CoreGui")
+local terrain=insGet(ws,"Terrain")
 local lp=insGet(plrs,"LocalPlayer")
 local pg=FindFirstChildOfClass(lp,"PlayerGui")
 local mouse=insGet(lp,"GetMouse")(lp)
@@ -138,6 +134,9 @@ local preanimation=insGet(rus,"PreAnimation")
 local heartbeat=insGet(rus,"Heartbeat")
 local renderstepped=insGet(rus,"RenderStepped")
 
+local IsGrounded=insGet(terrain,"IsGrounded")
+local GetJoints=insGet(terrain,"GetJoints")
+local ApplyImpulse=insGet(terrain,"ApplyImpulse")
 local GetPlayers=insGet(plrs,"GetPlayers")
 local SetCoreGuiEnabled=insGet(sg,"SetCoreGuiEnabled")
 local GetCoreGuiEnabled=insGet(sg,"GetCoreGuiEnabled")
@@ -155,6 +154,7 @@ local Inverse=cfGet(cf_0,"Inverse")
 local Lerp=cfGet(cf_0,"Lerp")
 local ToEulerAnglesYXZ=cfGet(cf_0,"ToEulerAnglesYXZ")
 
+local secrets={}
 local accessorylimbs={
 	{meshid="117287001096396",C0=cf_0,Name="Left Arm"},
 	{meshid="117287001096396",C0=cf_0,Name="Right Arm"},
@@ -458,6 +458,24 @@ local breakjointsmethod=nil
 local simrad=false
 local hidedeatheffect=nil
 local reclaim=nil
+local ajucompatibility=nil
+
+local availableSettings={
+	"camerasensitivity",
+	"allowshiftlock",
+	"ctrltp",
+	"placeholders",
+	"clickfling",
+	"highlightflingtargets",
+	"discharscripts",
+	"flingchangestate",
+	"respawntp",
+	"breakjointsmethod",
+	"simrad",
+	"hidedeatheffect",
+	"reclaim",
+	"ajucompatibility"
+}
 
 local applysettings=function(t)
 	camerasensitivity=t.camerasensitivity or camerasensitivity
@@ -477,6 +495,7 @@ local applysettings=function(t)
 	simrad=t.simrad or simrad
 	hidedeatheffect=t.hidedeatheffect or hidedeatheffect
 	reclaim=t.reclaim or reclaim
+	ajucompatibility=t.ajucompatibility or ajucompatibility
 end
 
 local returnDelta=function() --deltaTime cuz im lazy asf
@@ -484,7 +503,7 @@ local returnDelta=function() --deltaTime cuz im lazy asf
 end
 
 local fpdh=insGet(ws,"FallenPartsDestroyHeight")
-
+local caches={}
 local cleantable={}
 local onstopfunc=nil
 local c=nil
@@ -533,6 +552,10 @@ local stopreanimate=function()
 			end
 		end
 		tclear(cleantable)
+		for _,v in next,caches do
+			Destroy(v)
+		end
+		tclear(caches)
 		if type(onstopfunc)=="function" then
 			onstopfunc()
 			onstopfunc=nil
@@ -621,17 +644,12 @@ local reanimate=function()
 	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or FindFirstChildWhichIsA(c,"BasePart")
 	if rootpart then
 		cfr=insGet(rootpart,"CFrame")
-		if not IsGrounded then IsGrounded=insGet(rootpart,"IsGrounded") end
-		if not ApplyImpulse then ApplyImpulse=insGet(rootpart,"ApplyImpulse") end
 	else
 		cfr=cfAdd(insGet(cam,"Focus"),v3_010*-1.5)
-		if not IsGrounded then pcall(function() local i=i("Part") IsGrounded=insGet(i,"IsGrounded") Destroy(i) end) end
-		if not ApplyImpulse then pcall(function() local i=i("Part") ApplyImpulse=insGet(i,"ApplyImpulse") Destroy(i) end) end
 	end
 
 	novoid=novoid and (fpdh+1)
 
-	local secrets={}
 	local noVelMode=false
 	local Yvel=0
 	local pos=cfGet(cfr,"Position")
@@ -984,11 +1002,10 @@ local reanimate=function()
 		end
 	end
 
-	local simradv=0
+	local simradv=2147483647
 	local enumH=e.CoreGuiType.Health
 	local refreshf=nil
 	local onplayer=function(v)
-		simradv+=1000
 		local islp=v==lp
 		local lastc=nil
 		local oncharacter=function()
@@ -1054,48 +1071,52 @@ local reanimate=function()
 						insSet(hrp,"CFrame",cfr)
 						twait(0.25)
 					end
-					if respawntp==0 then
-						twait()
-					elseif respawntp==1 then
-						local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
-						local dir=nil
-						local poscheck=true
-						while poscheck do
-							poscheck=false
-							for i,v in next,rootparts do
-								local diff=(startpos-insGet(v,"Position"))*v3_101
+					if ajucompatibility and secrets.aju then
+						secrets.aju()
+					else
+						if respawntp==0 then
+							twait()
+						elseif respawntp==1 then
+							local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
+							local dir=nil
+							local poscheck=true
+							while poscheck do
+								poscheck=false
+								for i,v in next,rootparts do
+									local diff=(startpos-insGet(v,"Position"))*v3_101
+									if vmagnitude(diff)<10 then
+										poscheck=true
+										dir=dir or (vnormalize(diff)*3)
+										startpos+=dir
+									end
+								end
+								local diff=(startpos-pos)*v3_101
 								if vmagnitude(diff)<10 then
 									poscheck=true
 									dir=dir or (vnormalize(diff)*3)
 									startpos+=dir
 								end
 							end
-							local diff=(startpos-pos)*v3_101
-							if vmagnitude(diff)<10 then
-								poscheck=true
-								dir=dir or (vnormalize(diff)*3)
-								startpos+=dir
-							end
-						end
-						startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
-						insSet(hrp,"CFrame",startpos)
-						insSet(hrp,"AssemblyLinearVelocity",v3_0)
-						insSet(hrp,"AssemblyAngularVelocity",v3_0)
-						twait(0.25)
-					elseif respawntp==2 then
-						insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
-						insSet(hrp,"AssemblyLinearVelocity",v3_0)
-						insSet(hrp,"AssemblyAngularVelocity",v3_0)
-						twait(0.25)
-					elseif respawntp==3 then
-						local t=osclock()+0.25
-						local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
-						while Wait(heartbeat) do
-							insSet(hrp,"CFrame",startcf)
+							startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
+							insSet(hrp,"CFrame",startpos)
 							insSet(hrp,"AssemblyLinearVelocity",v3_0)
 							insSet(hrp,"AssemblyAngularVelocity",v3_0)
-							if osclock()>t then
-								break
+							twait(0.25)
+						elseif respawntp==2 then
+							insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							twait(0.25)
+						elseif respawntp==3 then
+							local t=osclock()+0.25
+							local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
+							while Wait(heartbeat) do
+								insSet(hrp,"CFrame",startcf)
+								insSet(hrp,"AssemblyLinearVelocity",v3_0)
+								insSet(hrp,"AssemblyAngularVelocity",v3_0)
+								if osclock()>t then
+									break
+								end
 							end
 						end
 					end
@@ -1112,6 +1133,7 @@ local reanimate=function()
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
+							insGet(h,"ChangeState")(h,e.HumanoidStateType.Dead)
 						end
 					elseif breakjointsmethod==1 then
 						insGet(newc,"BreakJoints")(newc)
@@ -1148,7 +1170,6 @@ local reanimate=function()
 		oncharacter()
 	end
 	tinsert(cleantable,Connect(insGet(plrs,"PlayerRemoving"),function(v)
-		simradv-=1000
 		local charcon=charcons[v]
 		if charcon then
 			Disconnect(charcon)
@@ -1156,7 +1177,7 @@ local reanimate=function()
 		characters[v]=nil
 		rootparts[v]=nil
 	end))
-	for i,v in next,GetPlayers(plrs) do simradv=simradv+1000 if v~=lp then tspawn(onplayer,v) end end
+	for i,v in next,GetPlayers(plrs) do if v~=lp then tspawn(onplayer,v) end end
 	tinsert(cleantable,Connect(insGet(plrs,"PlayerAdded"),onplayer))
 	onplayer(lp)
 	local setsimrad=emptyfunction
@@ -1872,7 +1893,7 @@ local reanimate=function()
 					insSet(part,"CFrame",v)
 					insSet(part,"AssemblyAngularVelocity",v3_0)
 				else
-					if isnetworkowner(part) then
+					if insGet(part,"ReceiveAge")==0 and IsDescendantOf(part,ws) and not GetJoints(part)[1] and not IsGrounded(part) then
 						local placeholder=i.v
 						local vpos=cfGet(v,"Position")
 						if novoid and (v3Get(vpos,"Y")<novoid) then
@@ -2189,7 +2210,11 @@ local reanimate=function()
 		blockedKeys[a]=b
 	end
 	local addSecrets=function(t)
-		
+		for i,v in next,t do
+			if not secrets[i] and type(v)=="function" then
+				secrets[i]=v
+			end
+		end
 	end
 
 	return {
@@ -2244,4 +2269,4 @@ local reanimate=function()
 	}
 end
 
-return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction,accessoryinfos=accessoryinfos}
+return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction,availableSettings=availableSettings,accessoryinfos=accessoryinfos}
