@@ -1072,7 +1072,7 @@ local reanimate=function()
 						twait(0.25)
 					end
 					if ajucompatibility and secrets.aju then
-						secrets.aju()
+						secrets.aju(c,hrp,caches)
 					else
 						if respawntp==0 then
 							twait()
