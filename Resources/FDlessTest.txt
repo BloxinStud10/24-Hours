@@ -2209,13 +2209,6 @@ local reanimate=function()
 	local enableKeyCode=function(a,b) --enable/disable specific KeyCode (for reanimation)
 		blockedKeys[a]=b
 	end
-	local addSecrets=function(t)
-		for i,v in next,t do
-			if not secrets[i] and type(v)=="function" then
-				secrets[i]=v
-			end
-		end
-	end
 
 	return {
 		characters=characters,
@@ -2264,9 +2257,8 @@ local reanimate=function()
 		isFlinging=isFlinging,
 		setHipHeight=setHipHeight,
 		onRefresh=onRefresh,
-		enableKeyCode=enableKeyCode,
-		addSecrets=addSecrets
+		enableKeyCode=enableKeyCode
 	}
 end
 
-return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction,availableSettings=availableSettings,accessoryinfos=accessoryinfos}
+return {reanimate=reanimate,stopreanimate=stopreanimate,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,pdfunc=emptyfunction,availableSettings=availableSettings,addSecrets=function(t) for i,v in next,t do if not secrets[i] and type(v)=="function" then secrets[i]=v end end end,accessoryinfos=accessoryinfos}
