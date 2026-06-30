@@ -1,7 +1,7 @@
 --!optimize 2
 --[[
 	FDless reanimate by MyWorld
-	From Patchma Hub [Test]
+	From Patchma Hub
 	Version 59E (E is only here cuz it edited)
 	
 	patch patch patch sahur
@@ -337,7 +337,6 @@ end
 
 local hlp=(gethui and gethui()) or (typeof(cg)=="Instance" and cg) or pg
 
-local camerasensitivity=1
 local allowshiftlock=nil
 local ctrltp=nil
 local placeholders=nil
@@ -353,7 +352,6 @@ local ajucompatibility=nil
 local allowlayeredclothing=nil
 
 local availableSettings={
-	"camerasensitivity",
 	"allowshiftlock",
 	"ctrltp",
 	"placeholders",
@@ -370,7 +368,6 @@ local availableSettings={
 }
 
 local applysettings=function(t)
-	camerasensitivity=t.camerasensitivity~=nil and t.camerasensitivity
 	allowshiftlock=t.allowshiftlock~=nil and t.allowshiftlock
 	ctrltp=t.ctrltp~=nil and t.ctrltp
 	placeholders=t.placeholders~=nil and t.placeholders
@@ -1416,7 +1413,7 @@ local reanimate=function()
 					firstperson=true
 				end
 			elseif inputObject==cameraRotateInputObject and cameraMoveable and typeof(scriptablecamcf)~="CFrame" then
-				local rotation=GetMouseDelta(uis)*camerasensitivity
+				local rotation=GetMouseDelta(uis)
 				camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 				camrotY=v2Get(rotation,"X")*mradN05+camrotY
 				camrot=angles(camrotX,camrotY,0,enumYXZ)
@@ -1474,7 +1471,7 @@ local reanimate=function()
 		if b then return end
 		local inputType=insGet(a,"UserInputType")
 		if mouseCameraMove and inputType==enumMM and cameraMoveable and typeof(scriptablecamcf)~="CFrame" then
-			local rotation=GetMouseDelta(uis)*camerasensitivity
+			local rotation=GetMouseDelta(uis)
 			camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 			camrotY=v2Get(rotation,"X")*mradN05+camrotY
 			camrot=angles(camrotX,camrotY,0,enumYXZ)
