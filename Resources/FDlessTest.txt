@@ -108,7 +108,6 @@ local Clone=insGet(game,"Clone")
 local ClearAllChildren=insGet(game,"ClearAllChildren")
 local Destroy=insGet(game,"Destroy")
 local IsA=insGet(game,"IsA")
-local FindFirstChild=insGet(game,"FindFirstChild")
 local FindFirstChildOfClass=insGet(game,"FindFirstChildOfClass")
 local FindFirstChildWhichIsA=insGet(game,"FindFirstChildWhichIsA")
 local GetChildren=insGet(game,"GetChildren")
@@ -535,6 +534,10 @@ end
 local stopreanimate=function() 
 	if c then
 		c=nil
+		if lpcon then
+			Disconnect(lpcon)
+			lpcon=nil
+		end
 		for i,v in next,cframes do
 			local p=i.v
 			if p then
@@ -542,10 +545,6 @@ local stopreanimate=function()
 			end
 		end
 		tclear(cframes)
-		if lpcon then
-			Disconnect(lpcon)
-			lpcon=nil
-		end
 		for i,v in next,flingtable do
 			if v then --it could be false
 				Destroy(v)
@@ -602,6 +601,8 @@ local reanimate=function()
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
 	if not c then return end
+	
+	local BreakJoints=insGet(c,"BreakJoints")
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -1032,11 +1033,10 @@ local reanimate=function()
 		simradv+=1000
 		local islp=v==lp
 		local lastc=nil
-		local refresh=nil
 		if islp then
 			local hrp=nil
 			local childadded=function(i)
-				if refresh and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
+				if IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart" then
 					hrp=i
 					rootparts[v]=hrp
 					if lpcon then
@@ -1049,6 +1049,7 @@ local reanimate=function()
 				local newc=insGet(v,"Character")
 				if newc and (newc~=lastc) then
 					lastc=newc
+					pcall(Disconnect,cleantable.ondes)
 					if lpcon then
 						Disconnect(lpcon)
 						lpcon=nil
@@ -1056,14 +1057,14 @@ local reanimate=function()
 					characters[v]=newc
 					refreshrayfilter()
 					if discharscripts then
-						Connect(insGet(newc,"DescendantAdded"),discharscripts)
+						pcall(Disconnect,cleantable.discharscripts)
+						cleantable.discharscripts=Connect(insGet(newc,"DescendantAdded"),discharscripts)
 						for i,v in next,QueryDescendants(newc,"LocalScript,Script[RunContext=Client]") do
 							insSet(v,"Disabled",true)
 						end
 					end
 					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1]
 					if not hrp then
-						refresh=true
 						lpcon=Connect(insGet(newc,"ChildAdded"),childadded)
 						repeat
 							twait()
@@ -1180,7 +1181,7 @@ local reanimate=function()
 						SetCoreGuiEnabled(sg,enumH,false)
 					end
 					if breakjointsmethod==4 then
-						insGet(newc,"BreakJoints")(newc)
+						BreakJoints(newc)
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
@@ -1193,7 +1194,7 @@ local reanimate=function()
 							end
 						end
 					elseif breakjointsmethod==1 then
-						insGet(newc,"BreakJoints")(newc)
+						BreakJoints(newc)
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
@@ -1203,10 +1204,10 @@ local reanimate=function()
 						if h then
 							insSet(h,"Health",0)
 						else
-							insGet(newc,"BreakJoints")(newc)
+							BreakJoints(newc)
 						end
 					else
-						insGet(newc,"BreakJoints")(newc)
+						BreakJoints(newc)
 					end
 					if refreshf then
 						tspawn(refreshf)
@@ -1224,7 +1225,7 @@ local reanimate=function()
 			local newc=nil
 			local hrp=nil
 			local childadded=function(i)
-				if refresh and newc and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
+				if newc and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
 					hrp=i
 					rootparts[v]=hrp
 					if con0 then
@@ -1247,7 +1248,6 @@ local reanimate=function()
 					if hrp then
 						rootparts[v]=hrp
 					else
-						refresh=true
 						con0=Connect(insGet(newc,"ChildAdded"),childadded)
 					end
 				end
