@@ -2,7 +2,7 @@
 --[[
 	FDless reanimate by MyWorld
 	From Patchma Hub
-	Version 59E (E is only here cuz it edited)
+	Version 59.5E (E is only here cuz it edited)
 	
 	patch patch patch sahur
 	exploit is dead
@@ -42,6 +42,7 @@ local type=type
 local typeof=typeof
 local game=game
 local replicatesignal=replicatesignal
+local cloneref=cloneref or function(...) return ... end
 
 local i=Instance.new 
 local u2=UDim2.new
@@ -54,7 +55,6 @@ local angles=CFrame.fromEulerAngles --faster than .Angles
 local e=Enum 
 local rp=RaycastParams.new 
 
-local nan=0/0
 local sine=osclock()
 local deltaTime=0
 local v3_0=v3(0,0,0)
@@ -103,12 +103,10 @@ local v2Get=getMetamethodFromErrorStack(v2(),function(a,b) return a[b] end,funct
 --its faster to multiply X and Y of vector2 than to multiply vector2 and then get X and Y from it
 
 --no need to index instances every time to call their functions
-local GetObjects=insGet(game,"GetObjects")
 local Clone=insGet(game,"Clone")
 local ClearAllChildren=insGet(game,"ClearAllChildren")
 local Destroy=insGet(game,"Destroy")
 local IsA=insGet(game,"IsA")
-local FindFirstChild=insGet(game,"FindFirstChild")
 local FindFirstChildOfClass=insGet(game,"FindFirstChildOfClass")
 local FindFirstChildWhichIsA=insGet(game,"FindFirstChildWhichIsA")
 local GetChildren=insGet(game,"GetChildren")
@@ -117,12 +115,12 @@ local IsDescendantOf=insGet(game,"IsDescendantOf")
 local GetPropertyChangedSignal=insGet(game,"GetPropertyChangedSignal")
 
 --findfirstchildofclass faster than getservice
-local plrs=FindFirstChildOfClass(game,"Players")
-local rus=FindFirstChildOfClass(game,"RunService")
-local ws=FindFirstChildOfClass(game,"Workspace")
-local uis=FindFirstChildOfClass(game,"UserInputService")
-local gs=FindFirstChildOfClass(game,"GuiService")
-local sg=FindFirstChildOfClass(game,"StarterGui")
+local plrs=cloneref(FindFirstChildOfClass(game,"Players"))
+local rus=cloneref(FindFirstChildOfClass(game,"RunService"))
+local ws=cloneref(FindFirstChildOfClass(game,"Workspace"))
+local uis=cloneref(FindFirstChildOfClass(game,"UserInputService"))
+local gs=cloneref(FindFirstChildOfClass(game,"GuiService"))
+local sg=cloneref(FindFirstChildOfClass(game,"StarterGui"))
 local cg=FindFirstChildOfClass(game,"CoreGui")
 local terrain=insGet(ws,"Terrain")
 local lp=insGet(plrs,"LocalPlayer")
@@ -335,11 +333,12 @@ local Draggable=function(window,obj)
 	end)
 end
 
-local hlp=(gethui and gethui()) or (typeof(cg)=="Instance" and cg) or pg
+local hlp=(gethui and gethui()) or (cloneref((typeof(cg)=="Instance" and cg) or pg))
 
 local allowshiftlock=nil
 local ctrltp=nil
 local placeholders=nil
+local allowfling=true --will be editable soon
 local clickfling=nil
 local highlightflingtargets=nil
 local discharscripts=nil
@@ -402,8 +401,7 @@ local currenttable=nil
 local onstopfunc=nil
 local c=nil
 local cframes={}
-local lpcon0=nil
-local lpcon1=nil
+local lpcon=nil
 local charcons={}
 local flingtable={}
 local plrcleanfuncs={}
@@ -426,13 +424,9 @@ local stopreanimate=function()
 			end
 		end
 		tclear(cframes)
-		if lpcon0 then
-			Disconnect(lpcon0)
-			lpcon0=nil
-		end
-		if lpcon1 then
-			Disconnect(lpcon1)
-			lpcon1=nil
+		if lpcon then
+			Disconnect(lpcon)
+			lpcon=nil
 		end
 		for i,v in next,flingtable do
 			if v then --it could be false
@@ -489,7 +483,7 @@ local reanimate=function()
 	
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
-	if not (c and IsDescendantOf(c,ws)) then return end
+	if not c then return end
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -544,16 +538,18 @@ local reanimate=function()
 	onnewcamera()
 	
 	local wsGravity=insGet(ws,"Gravity")
-	local velYdelta=wsGravity*0.025
 	tinsert(cleantable,Connect(GetPropertyChangedSignal(ws,"Gravity"),function()
 		wsGravity=insGet(ws,"Gravity")
-		velYdelta=wsGravity*0.025
 	end))
 	
 	local cfr=nil
-	local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or FindFirstChildWhichIsA(c,"BasePart")
-	if rootpart then
-		cfr=insGet(rootpart,"CFrame")
+	if c and IsDescendantOf(c,ws) then
+		local rootpart=QueryDescendants(c,">BasePart#HumanoidRootPart")[1] or QueryDescendants(c,">BasePart#Torso")[1] or QueryDescendants(c,">BasePart#UpperTorso")[1] or FindFirstChildWhichIsA(c,"BasePart")
+		if rootpart then
+			cfr=insGet(rootpart,"CFrame")
+		else
+			cfr=cfAdd(insGet(cam,"Focus"),v3_010*-1.5)
+		end
 	else
 		cfr=cfAdd(insGet(cam,"Focus"),v3_010*-1.5)
 	end
@@ -920,40 +916,24 @@ local reanimate=function()
 		local lastc=nil
 		local refresh=nil
 		if islp then
-			local newc=nil
 			local hrp=nil
-			local loopqueryrefresh=function()
-				if refresh then
-					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1] or FindFirstChildWhichIsA(newc,"BasePart")
-					if hrp then
-						if lpcon0 then
-							Disconnect(lpcon0)
-							lpcon0=nil
-						end
-						if lpcon1 then
-							Disconnect(lpcon1)
-							lpcon1=nil
-						end
-						return
+			local childadded=function(i)
+				if refresh and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
+					hrp=i
+					rootparts[v]=hrp
+					if lpcon then
+						Disconnect(lpcon)
+						lpcon=nil
 					end
-					refresh=false
 				end
 			end
-			local childadded=function()
-				refresh=true
-				lpcon1=Connect(preanimation,loopqueryrefresh)
-			end
 			local oncharacter=function()
-				newc=insGet(v,"Character")
+				local newc=insGet(v,"Character")
 				if newc and (newc~=lastc) then
 					lastc=newc
-					if lpcon0 then
-						Disconnect(lpcon0)
-						lpcon0=nil
-					end
-					if lpcon1 then
-						Disconnect(lpcon1)
-						lpcon1=nil
+					if lpcon then
+						Disconnect(lpcon)
+						lpcon=nil
 					end
 					characters[v]=newc
 					refreshrayfilter()
@@ -966,9 +946,12 @@ local reanimate=function()
 					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1]
 					if not hrp then
 						refresh=true
-						lpcon0=Connect(insGet(newc,"ChildAdded"),childadded)
+						lpcon=Connect(insGet(newc,"ChildAdded"),childadded)
 						repeat
-							Wait(heartbeat)
+							twait()
+							if (newc~=lastc) then
+								return
+							end
 						until hrp
 					end
 					c=newc
@@ -1117,30 +1100,17 @@ local reanimate=function()
 			oncharacter()
 		else
 			local con0=nil
-			local con1=nil
 			local newc=nil
 			local hrp=nil
-			local loopqueryrefresh=function()
-				if refresh and newc then
-					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1] or FindFirstChildWhichIsA(newc,"BasePart")
-					if hrp then
-						rootparts[v]=hrp
-						if con0 then
-							Disconnect(con0)
-							con0=nil
-						end
-						if con1 then
-							Disconnect(con1)
-							con1=nil
-						end
-						return
+			local childadded=function(i)
+				if refresh and newc and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
+					hrp=i
+					rootparts[v]=hrp
+					if con0 then
+						Disconnect(con0)
+						con0=nil
 					end
-					refresh=false
 				end
-			end
-			local childadded=function()
-				refresh=true
-				con1=Connect(preanimation,loopqueryrefresh)
 			end
 			local oncharacter=function()
 				newc=insGet(v,"Character")
@@ -1149,10 +1119,6 @@ local reanimate=function()
 					if con0 then
 						Disconnect(con0)
 						con0=nil
-					end
-					if con1 then
-						Disconnect(con1)
-						con1=nil
 					end
 					characters[v]=newc
 					refreshrayfilter()
@@ -1174,10 +1140,6 @@ local reanimate=function()
 				if con0 then
 					Disconnect(con0)
 					con0=nil
-				end
-				if con1 then
-					Disconnect(con1)
-					con1=nil
 				end
 				Disconnect(charcon)
 			end
@@ -1489,6 +1451,9 @@ local reanimate=function()
 	end))
 
 	local predictionfling=function(target)
+		if not allowfling then
+			return false
+		end
 		if typeof(target)~="Instance" then 
 			target=insGet(mouse,"Target")
 			if not target then
@@ -2180,6 +2145,9 @@ local reanimate=function()
 		return isWalking
 	end
 	local isFlinging=function(i) --returns true if target (or target's descendant) is scheduled to be flung
+		if not i then
+			return false
+		end
 		if not IsDescendantOf(i,ws) then
 			return false
 		end
@@ -2192,11 +2160,9 @@ local reanimate=function()
 		if (not IsA(i,"Model")) or (i==c) or (IsDescendantOf(i,c)) then
 			return false
 		end
-		if i then
-			for p,b in next,flingtable do
-				if IsDescendantOf(i,p) then
-					return true
-				end
+		for p in next,flingtable do
+			if IsDescendantOf(p,i) then
+				return true
 			end
 		end
 		return false
