@@ -73,28 +73,18 @@ local v3_net=v3_010*25.01
 local enumMD=e.MouseBehavior.Default
 
 local sm=v3_010/2
-
 local dense=pp(100,0,0,100,100)
-
 local light=pp(0.0001,0,0,100,100)
-
 local humstatetypes=e.HumanoidStateType:GetEnumItems()
-
 tremove(humstatetypes,tfind(humstatetypes,e.HumanoidStateType.Running))
-
 tremove(humstatetypes,tfind(humstatetypes,e.HumanoidStateType.None))
-
 
 --not "local function rs" to not assign debug names
 --table.concat is much faster than string interpolation
-local rs=function()
+local rs=@native function()
 	local t={}
 	for i=1,mrandom(8,15) do
-		if mrandom(2)==2 then
-			t[i]=schar(mrandom(65,90))
-		else
-			t[i]=schar(mrandom(97,122))
-		end
+		t[i]=schar(mrandom(2)==2 and mrandom(65,90) or mrandom(97,122))
 	end
 	return tconcat(t)
 end
@@ -515,7 +505,7 @@ local availableSettings={
 	"allowlayeredclothing"
 }
 
-local applysettings=function(t)
+local applysettings=@native function(t)
 	allowshiftlock=t.allowshiftlock~=nil and t.allowshiftlock
 	ctrltp=t.ctrltp~=nil and t.ctrltp
 	placeholders=t.placeholders~=nil and t.placeholders
@@ -569,7 +559,7 @@ local onstopcallback=function(f)
 		onstopfunc=f
 	end
 end
-local stopreanimate=function() 
+local stopreanimate=@native function() 
 	if c then
 		c=nil
 		if lpcon then
@@ -782,7 +772,7 @@ local reanimate=function()
 
 	local refreshedjoints={}
 	local refreshjointsI=nil
-	refreshjointsI=function(part)
+	refreshjointsI=@native function(part)
 		refreshedjoints[part]=true
 		for i,v in next,joints do
 			local part0=v.Part0
@@ -825,7 +815,7 @@ local reanimate=function()
 		FaceCenterAttachment={R6parts.head,cf(0,0,0,1,0,0,0,1,0,0,0,1)}
 	}
 
-	local getPart=function(name,blacklist)
+	local getPart=@native function(name,blacklist)
 		if blacklist then
 			for i,v in next,cframes do
 				if (i.Name==name) and not tfind(blacklist,i) then
@@ -841,7 +831,7 @@ local reanimate=function()
 		end
 	end
 
-	local getJoint=function(name,ignore)
+	local getJoint=@native function(name,ignore)
 		for i,v in next,joints do
 			if v.Name==name then
 				return v
@@ -852,7 +842,7 @@ local reanimate=function()
 		end
 	end
 
-	local getPartFromMesh=function(m,t,blacklist,ignore)
+	local getPartFromMesh=@native function(m,t,blacklist,ignore)
 		if blacklist then
 			for v,_ in next,cframes do
 				if v.m and (not tfind(blacklist,v)) and sfind(v.m,m) and sfind(v.t,t) then
@@ -875,7 +865,7 @@ local reanimate=function()
 		end
 	end
 
-	local getPartJoint=function(p)
+	local getPartJoint=@native function(p)
 		if cframes[p] then
 			local j=p.j
 			if j then
@@ -894,11 +884,11 @@ local reanimate=function()
 		end
 	end
 	
-	local getAccWeldFromMesh=function(m,t)
+	local getAccWeldFromMesh=@native function(m,t)
 		return getPartJoint(getPartFromMesh(m,t))
 	end
 	
-	local getPartsFromMesh=function(m,t,blacklist,ignore)
+	local getPartsFromMesh=@native function(m,t,blacklist,ignore)
 		local t={}
 		if blacklist then
 			for v,_ in next,cframes do
@@ -923,7 +913,7 @@ local reanimate=function()
 		return t
 	end
 	
-	local getAccWeldsFromMesh=function(m,t)
+	local getAccWeldsFromMesh=@native function(m,t)
 		local t={}
 		for i,p in next,getPartsFromMesh(m,t) do
 			local w=getPartJoint(p)
@@ -940,13 +930,16 @@ local reanimate=function()
 	local rayexclusions={}
 	local rayfilter={}
 	local characters={}
-	local refreshrayfilter=function()
+	local refreshrayfilter=@native function()
 		tclear(rayfilter)
+		local n=0
 		for i,v in next,characters do
-			tinsert(rayfilter,v)
+			n+=1
+			rayfilter[n]=v
 		end
 		for i,v in next,rayexclusions do
-			tinsert(rayfilter,v)
+			n+=1
+			rayfilter[n]=v
 		end
 		raycastparams.FilterDescendantsInstances=rayfilter
 	end
@@ -1127,11 +1120,8 @@ local reanimate=function()
 								end
 								if isPhysicsRepFling then
 									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Ragdoll)
-
 									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Running,false)
-
 								end
-
 							end
 						end
 						twait(0.25)
@@ -1379,7 +1369,7 @@ local reanimate=function()
 			end
 			local charcon=Connect(GetPropertyChangedSignal(v,"Character"),oncharacter)
 			oncharacter()
-			plrcleanfuncs[v]=function()
+			plrcleanfuncs[v]=@native function()
 				simradv-=1000
 				characters[v]=nil
 				rootparts[v]=nil
@@ -1442,7 +1432,7 @@ local reanimate=function()
 	local lerpsJump=emptyfunction
 	local lerpsFall=emptyfunction
 
-	local addmode=function(key,mode)
+	local addmode=@native function(key,mode)
 		if (type(key)~="string") or (type(mode)~="table") then
 			return
 		end
@@ -1481,7 +1471,7 @@ local reanimate=function()
 	local FWmovement=0
 	local RTmovement=0
 	local isWalking=false
-	local refreshKeyboardMovement=function()
+	local refreshKeyboardMovement=@native function()
 		if Wpressed then if Spressed then if Dpressed then if Apressed then isWalking=false else FWmovement=0 RTmovement=1 isWalking=true end else if Apressed then FWmovement=0 RTmovement=-1 isWalking=true else isWalking=false end end else FWmovement=1 if Dpressed then if Apressed then RTmovement=0 else RTmovement=1 end else if Apressed then RTmovement=-1 else RTmovement=0 end end isWalking=true end else if Spressed then FWmovement=-1 if Dpressed then if Apressed then RTmovement=0 else RTmovement=1 end else if Apressed then RTmovement=-1 else RTmovement=0 end end isWalking=true else if Dpressed then if Apressed then isWalking=false else FWmovement=0 RTmovement=1 isWalking=true end else if Apressed then FWmovement=0 RTmovement=-1 isWalking=true else isWalking=false end end end end
 	end
 	refreshKeyboardMovement()
@@ -1645,7 +1635,7 @@ local reanimate=function()
 		end
 	end))
 
-	local refreshTouchRegions=function()
+	local refreshTouchRegions=@native function()
 		local sX=insGet(mouse,"ViewSizeX")
 		local sY=insGet(mouse,"ViewSizeY")
 		local isSmallScreen=min(sX,sY)<=500
@@ -1767,7 +1757,7 @@ local reanimate=function()
 
 	local hhOff=3
 	local hhOff1=3.01
-	local setHipHeight=function(n)
+	local setHipHeight=@native function(n)
 		hhOff=n+3
 		hhOff1=n+3.01
 	end
@@ -2213,7 +2203,7 @@ local reanimate=function()
 	tinsert(cleantable,Connect(heartbeat,mainFunction))
 	mainFunction()
 
-	local refreshjoints=function(v) --use this on the main part if u have parts that
+	local refreshjoints=@native function(v) --use this on the main part if u have parts that
 		refreshjointsI(v) --are connected with each other but arent connected to rootpart
 		tclear(refreshedjoints)
 	end
@@ -2237,7 +2227,7 @@ local reanimate=function()
 		end
 	end
 
-	local velbycfrvec=function() --this returns 2 values: forward/backwards movement (from -1 to 1), right/left movement (from -1 to 1)
+	local velbycfrvec=@native function() --this returns 2 values: forward/backwards movement (from -1 to 1), right/left movement (from -1 to 1)
 		local fw=cfGet(cfr,"LookVector")*xzvel/walkSpeed
 		local rt=cfGet(cfr,"RightVector")*xzvel/walkSpeed
 		return v3Get(fw,"X")+v3Get(fw,"Z"),v3Get(rt,"X")+v3Get(rt,"Z")
@@ -2245,7 +2235,7 @@ local reanimate=function()
 
 	local lastvel=v3_0
 	local velchg1=v3_0
-	local velchgbycfrvec=function() --this returns 2 values: forward/backwards velocity change, right/left velocity change
+	local velchgbycfrvec=@native function() --this returns 2 values: forward/backwards velocity change, right/left velocity change
 		velchg1=velchg1+(lastvel-xzvel) --i recommend setting velchg1 to v3_0 when u start using this function or it will look worse
 		lastvel=xzvel
 		velchg1=velchg1-velchg1*(deltaTime/2)
@@ -2256,28 +2246,28 @@ local reanimate=function()
 
 	local lastYvel=0
 	local velYchg1=0
-	local velYchg=function() --this returns Y axis velocity change
+	local velYchg=@native function() --this returns Y axis velocity change
 		velYchg1=clamp(velYchg1+(lastYvel-Yvel),-50,50) --i recommend setting velYchg1 to 0 when u start using this function or it will look worse
 		lastYvel=Yvel
 		velYchg1=velYchg1-velYchg1*(deltaTime/2)
 		return velYchg1
 	end
 
-	local rotToMouse=function(alpha) --this rotates ur character towards your mouse hit position
+	local rotToMouse=@native function(alpha) --this rotates ur character towards your mouse hit position
 		local pos1=pos*v3_010+cfGet(insGet(mouse,"Hit"),"Position")*v3_101
 		if pos~=pos1 then --could make nan rotation
 			cfr=Lerp(cfr,cfl(pos,pos1),alpha or deltaTime)
 		end
 	end
 	
-	local rotToPos=function(v,alpha) --this rotates ur character towards specific position
+	local rotToPos=@native function(v,alpha) --this rotates ur character towards specific position
 		local pos1=pos*v3_010+v*v3_101
 		if pos~=pos1 then --could make nan rotation
 			cfr=Lerp(cfr,cfl(pos,pos1),alpha or deltaTime)
 		end
 	end
 
-	local glitchJoint=function(joint,targetGlitchTime,delayFrom,delayTo,radiansFrom,radiansTo) 
+	local glitchJoint=@native function(joint,targetGlitchTime,delayFrom,delayTo,radiansFrom,radiansTo) 
 		if sine>targetGlitchTime then --example usage: local glitchtime=0 addMode("x",{idle=function() glitchtime=glitchJoint(joint,glitchtime,0.2,0.4,-0.1,0.1) end})
 			radiansFrom=radiansFrom*100
 			radiansTo=radiansTo*100
@@ -2286,25 +2276,25 @@ local reanimate=function()
 		end
 		return targetGlitchTime
 	end
-	local setWalkSpeed=function(n)
+	local setWalkSpeed=@native function(n)
 		if type(n)~="number" then
 			n=16
 		end
 		walkSpeed=n
 	end
-	local setJumpPower=function(n)
+	local setJumpPower=@native function(n)
 		if type(n)~="number" then
 			n=50
 		end
 		jumpPower=n
 	end
-	local setGravity=function(n)
+	local setGravity=@native function(n)
 		if type(n)~="number" then
 			n=196.2
 		end
 		gravity=n
 	end
-	local setCfr=function(v) --sets character cframe
+	local setCfr=@native function(v) --sets character cframe
 		local type=typeof(v)
 		if type=="CFrame" then
 			local newpos=cfGet(v,"Position")
@@ -2319,7 +2309,7 @@ local reanimate=function()
 			pos=v
 		end
 	end
-	local setCamCF=function(v) --sets camera cframe offset
+	local setCamCF=@native function(v) --sets camera cframe offset
 		local type=typeof(v)
 		if type=="CFrame" then
 			camoff=v
@@ -2327,7 +2317,7 @@ local reanimate=function()
 			camoff=cf(v)
 		end
 	end
-	local setCamScriptableCF=function(v) --sets camera cframe freely (set nil to set back to normal)
+	local setCamScriptableCF=@native function(v) --sets camera cframe freely (set nil to set back to normal)
 		local type=typeof(v)
 		if type=="CFrame" then
 			scriptablecamcf=v
@@ -2350,7 +2340,7 @@ local reanimate=function()
 	local setshiftlock=function(v) --turns on/off shiftlock
 		shiftlock=v
 	end
-	local setNoVelocity=function(b) --true if u want yo char to has no velocity
+	local setNoVelocity=@native function(b) --true if u want yo char to has no velocity
 		noVelMode=b
 		if b then
 			xzvel=v3_0
@@ -2369,10 +2359,10 @@ local reanimate=function()
 	local getGravity=function(n)
 		return gravity
 	end
-	local getVel=function() --returns character velocity
+	local getVel=@native function() --returns character velocity
 		return xzvel+v3_010*Yvel --important: use only in lerps or it might not work
 	end
-	local getDirs=function() --returns character move directions
+	local getDirs=@native function() --returns character move directions
 		return isWalking and vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+v3Get(camcfRV*v3_101,"Unit")*RTmovement) or v3_0
 	end
 	local getCamCF=function() --returns camera cframe
