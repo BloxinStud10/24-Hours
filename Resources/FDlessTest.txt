@@ -604,7 +604,7 @@ local stopreanimate=@native function()
 			onstopfunc()
 			onstopfunc=nil
 		end
-		if typeof(currenttable)=="table" then
+		if type(currenttable)=="table" then
 			tclear(currenttable)
 			currenttable=nil
 		end
