@@ -2,7 +2,7 @@
 --[[
 	FDless reanimate by MyWorld
 	From Patchma Hub [Test]
-	Version 60E (E is only here cuz it edited)
+	Version 61E (E is only here cuz it edited)
 	
 	patch patch patch sahur
 	exploit is dead
@@ -42,8 +42,8 @@ local xpcall=xpcall
 local type=type
 local typeof=typeof
 local game=game
-local sethiddenproperty=sethiddenproperty
-local gethiddenproperty=gethiddenproperty
+local sethiddenproperty=sethiddenproperty or set_hidden_property or set_hidden_prop or sethiddenprop
+local gethiddenproperty=gethiddenproperty or get_hidden_property or get_hidden_prop or gethiddenprop
 local setscriptable=setscriptable
 local replicatesignal=replicatesignal
 local cloneref=cloneref or function(...) return ... end
@@ -70,13 +70,18 @@ local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
 
+local enumphysics=e.HumanoidStateType.Physics
+local enumragdoll=e.HumanoidStateType.Ragdoll
+local enumrunning=e.HumanoidStateType.Running
+local enumseated=e.HumanoidStateType.Seated
+local enumdead=e.HumanoidStateType.Dead
 local enumMD=e.MouseBehavior.Default
 
 local sm=v3_010/2
 local dense=pp(100,0,0,100,100)
 local light=pp(0.0001,0,0,100,100)
 local humstatetypes=e.HumanoidStateType:GetEnumItems()
-tremove(humstatetypes,tfind(humstatetypes,e.HumanoidStateType.Running))
+tremove(humstatetypes,tfind(humstatetypes,enumrunning))
 tremove(humstatetypes,tfind(humstatetypes,e.HumanoidStateType.None))
 
 --not "local function rs" to not assign debug names
@@ -102,11 +107,11 @@ local getMetamethodFromErrorStack=function(userdata,f,test)
 end
 local insSet=getMetamethodFromErrorStack(game,function(a,b,c) a[b]=c end,function(f) local a=i("Folder") local b=rs() f(a,"Name",b) return a.Name==b end)
 local insGet=getMetamethodFromErrorStack(game,function(a,b) return a[b] end,function(f) local a=i("Folder") local b=rs() a.Name=b return f(a,"Name")==b end)
-local cfGet=getMetamethodFromErrorStack(cf_0,function(a,b) return a[b] end,function(f) return f(cf(1,2,3),"Position")==v3(1,2,3) end)
-local cfMul=getMetamethodFromErrorStack(cf_0,function(a,b) return a*b end,function(f) return angles(1,2,3)*angles(1,2,3)==f(angles(1,2,3),angles(1,2,3)) end)
-local cfAdd=getMetamethodFromErrorStack(cf_0,function(a,b) return a+b end,function(f) return cf(1,2,3)+v3(1,2,3)==f(cf(1,2,3),v3(1,2,3)) end)
-local v3Get=getMetamethodFromErrorStack(v3_0,function(a,b) return a[b] end,function(f) return v3(1,2,3).Unit==f(v3(1,2,3),"Unit") end)
-local v2Get=getMetamethodFromErrorStack(v2(),function(a,b) return a[b] end,function(f) return f(v2(1,2),"Y")==2 end)
+local cfGet=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a[b] end,function(f) return f(cf(1,2,3),"Position")==v3(1,2,3) end)
+local cfMul=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a*b end,function(f) return angles(1,2,3)*angles(1,2,3)==f(angles(1,2,3),angles(1,2,3)) end)
+local cfAdd=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a+b end,function(f) return cf(1,2,3)+v3(1,2,3)==f(cf(1,2,3),v3(1,2,3)) end)
+local v3Get=getMetamethodFromErrorStack(v3_0,@native function(a,b) return a[b] end,function(f) return v3(1,2,3).Unit==f(v3(1,2,3),"Unit") end)
+local v2Get=getMetamethodFromErrorStack(v2(),@native function(a,b) return a[b] end,function(f) return f(v2(1,2),"Y")==2 end)
 --multiplying and adding vector3 is faster if you use the * and + operators
 --its faster to multiply X and Y of vector2 than to multiply vector2 and then get X and Y from it
 
@@ -140,6 +145,17 @@ local heartbeat=insGet(rus,"Heartbeat")
 local renderstepped=insGet(rus,"RenderStepped")
 local stepped=insGet(rus,"Stepped")
 
+local BreakJoints
+local ChangeState
+local SetStateEnabled
+do
+	local model,hum=i("Model"),i("Humanoid")
+	BreakJoints=insGet(model,"BreakJoints")
+	ChangeState=insGet(hum,"ChangeState")
+	SetStateEnabled=insGet(hum,"SetStateEnabled")
+	pcall(Destroy,model)
+	pcall(Destroy,hum)
+end
 local IsGrounded=insGet(terrain,"IsGrounded")
 local GetJoints=insGet(terrain,"GetJoints")
 local GetPlayers=insGet(plrs,"GetPlayers")
@@ -629,8 +645,6 @@ local reanimate=function()
 	if stopreanimate() then return end
 	c=insGet(lp,"Character")
 	if not c then return end
-	
-	local BreakJoints=insGet(c,"BreakJoints")
 
 	local cam=nil
 	--theres a way to have ws.currentcamera nil on heartbeat and still have the game run normally
@@ -1110,17 +1124,17 @@ local reanimate=function()
 						local hum=FindFirstChildOfClass(c,"Humanoid")
 						if hum then
 							if flingchangestate==3 then
-								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
-								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+								ChangeState(hum,enumphysics)
+								SetStateEnabled(hum,enumseated,false)
 							elseif flingchangestate==1 then
-								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Physics)
+								ChangeState(hum,enumphysics)
 							else
 								if flingchangestate==2 then
-									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Seated,false)
+									SetStateEnabled(hum,enumseated,false)
 								end
 								if isPhysicsRepFling then
-									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Ragdoll)
-									insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Running,false)
+									ChangeState(hum,enumragdoll)
+									SetStateEnabled(hum,enumrunning,false)
 								end
 							end
 						end
@@ -1144,8 +1158,6 @@ local reanimate=function()
 									local hum=i("Humanoid")
 									insSet(hum,"Parent",model)
 									
-									local SetStateEnabled=insGet(hum,"SetStateEnabled")
-									
 									for i,v in next,humstatetypes do
 										SetStateEnabled(hum,v,false)
 									end
@@ -1161,7 +1173,6 @@ local reanimate=function()
 										insSet(v,"Parent",nil)
 									end
 
-
 									local tcfr1=cf(cfGet(tcfr,"Position")+v3_010*mrandom(10000,20000))
 									insSet(i0,"Parent",ws)
 									insSet(i0,"CFrame",tcfr1)
@@ -1170,7 +1181,7 @@ local reanimate=function()
 									insSet(i0,"CustomPhysicalProperties",dense)
 									insSet(hrp,"CustomPhysicalProperties",light)
 									insSet(model,"Parent",ws)
-									insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Running)
+									ChangeState(hum,enumrunning)
 									if not insGet(i0,"CanCollide") then
 										insSet(i0,"CanCollide",true)
 									end
@@ -1227,8 +1238,8 @@ local reanimate=function()
 								setscriptable(hrp,"PhysicsRepRootPart",true)
 								insSet(hrp,"PhysicsRepRootPart",nil)
 							else
-								insGet(hum,"SetStateEnabled")(hum,e.HumanoidStateType.Running,true)
-								insGet(hum,"ChangeState")(hum,e.HumanoidStateType.Running)
+								SetStateEnabled(hum,enumrunning,true)
+								ChangeState(hum,enumrunning)
 							end
 						end
 						insSet(hrp,"AssemblyLinearVelocity",v3_0)
@@ -1300,7 +1311,7 @@ local reanimate=function()
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
-							insGet(h,"ChangeState")(h,e.HumanoidStateType.Dead)
+							ChangeState(h,enumdead)
 							if replicatesignal then
 								local success,ServerBreakJoints=pcall(insGet,h,"ServerBreakJoints")
 								if success then
