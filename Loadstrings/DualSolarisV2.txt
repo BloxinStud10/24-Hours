@@ -6,4 +6,8 @@
 	Join 24-HOURS for more scripts (in the future)
 ]]--
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/DualSolarisV2.luau"))()
+local urls = {
+	"https://raw.githubusercontent.com/BloxinStud10/24-Hours/refs/heads/main/Obfuscations/DualSolarisV2.luau",
+	"https://cdn.jsdelivr.net/gh/BloxinStud10/24-Hours@main/Obfuscations/DualSolarisV2.luau"
+}
+local a=(syn and syn.request)or request;local b=nil;for c,c in next,urls do if a then local a,c=pcall(a,{Method="GET",Url=c})if a and c then b=c.Body;break end else local a,c=pcall(game.HttpGetAsync,game,c)if a and c then b=c;break end end end;if b then loadstring(b)()else warn("Http buggin")end
