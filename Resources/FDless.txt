@@ -252,17 +252,7 @@ local accessorylimbs={
 	{textureid="97155254696037",C0=angles(1.7671458676442586,-0.16580627893946132,0.39269908169872414),Name="Right Arm"},
 	{textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
 	{textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
-	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
-	
-	--layered
-	{meshid="14159161213",C0=cf_0,Name="Head",Layered=true},
-	{meshid="14085008200",C0=cf_0,Name="Torso",Layered=true},
-	
-	{textureid="13405498956",C0=cf_0,Name="Right Arm",Layered=true},
-	{textureid="13405498709",C0=cf_0,Name="Left Arm",Layered=true},
-	
-	{textureid="13405479171",C0=cf_0,Name="Right Leg",Layered=true},
-	{textureid="13405498485",C0=cf_0,Name="Left Leg",Layered=true},
+	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"}
 }
 
 --querydescendants faster than getchildren and checks in lua
@@ -365,8 +355,6 @@ local respawntp=nil
 local breakjointsmethod=nil
 local simrad=true
 local hidedeatheffect=nil
-local ajucompatibility=nil
-local allowlayeredclothing=nil
 local prercd=false
 
 local availableSettings={
@@ -383,8 +371,6 @@ local availableSettings={
 	"breakjointsmethod",
 	"simrad",
 	"hidedeatheffect",
-	"ajucompatibility",
-	"allowlayeredclothing",
 	"prercd"
 }
 
@@ -399,8 +385,6 @@ local applysettings=@native function(t)
 	breakjointsmethod=t.breakjointsmethod~=nil and t.breakjointsmethod
 	simrad=t.simrad~=nil and t.simrad
 	hidedeatheffect=t.hidedeatheffect~=nil and t.hidedeatheffect
-	ajucompatibility=t.ajucompatibility~=nil and t.ajucompatibility
-	allowlayeredclothing=t.allowlayeredclothing~=nil and t.allowlayeredclothing
 	prercd=t.prercd~=nil and t.prercd
 	if t.allowfling~=nil then
 		allowfling=t.allowfling
@@ -975,7 +959,7 @@ local reanimate=function()
 						end
 					end
 					for i,l in next,accessorylimbs do
-						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) and (allowlayeredclothing or not l.Layered) then
+						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
 							local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
 							makePartCons(p,t)
 							if placeholders then
@@ -1104,7 +1088,7 @@ local reanimate=function()
 						end
 					end
 					for i,l in next,accessorylimbs do
-						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) and (allowlayeredclothing or not l.Layered) then
+						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
 							local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
 							makePartCons(p,t)
 							if placeholders then
@@ -1373,52 +1357,48 @@ local reanimate=function()
 							insSet(hrp,"CFrame",cfr)
 							twait(0.25)
 						end
-						if ajucompatibility and secrets.aju then
-							secrets.aju(c,hrp,cfr,caches)
-						else
-							if respawntp==0 then
-								twait()
-							elseif respawntp==1 then
-								local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
-								local dir=nil
-								local poscheck=true
-								while poscheck do
-									poscheck=false
-									for i,v in next,rootparts do
-										local diff=(startpos-insGet(v,"Position"))*v3_101
-										if vmagnitude(diff)<10 then
-											poscheck=true
-											dir=dir or (vnormalize(diff)*3)
-											startpos+=dir
-										end
-									end
-									local diff=(startpos-pos)*v3_101
+						if respawntp==0 then
+							twait()
+						elseif respawntp==1 then
+							local startpos=pos+v3(mrandom(-32,32),0,mrandom(-32,32))
+							local dir=nil
+							local poscheck=true
+							while poscheck do
+								poscheck=false
+								for i,v in next,rootparts do
+									local diff=(startpos-insGet(v,"Position"))*v3_101
 									if vmagnitude(diff)<10 then
 										poscheck=true
 										dir=dir or (vnormalize(diff)*3)
 										startpos+=dir
 									end
 								end
-								startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
-								insSet(hrp,"CFrame",startpos)
+								local diff=(startpos-pos)*v3_101
+								if vmagnitude(diff)<10 then
+									poscheck=true
+									dir=dir or (vnormalize(diff)*3)
+									startpos+=dir
+								end
+							end
+							startpos=cfAdd(cfGet(cfr,"Rotation"),startpos)
+							insSet(hrp,"CFrame",startpos)
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							twait(0.3)
+						elseif respawntp==2 then
+							insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
+							insSet(hrp,"AssemblyLinearVelocity",v3_0)
+							insSet(hrp,"AssemblyAngularVelocity",v3_0)
+							twait(0.3)
+						elseif respawntp==3 then
+							local t=osclock()+0.3
+							local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
+							while twait() do
+								insSet(hrp,"CFrame",startcf)
 								insSet(hrp,"AssemblyLinearVelocity",v3_0)
 								insSet(hrp,"AssemblyAngularVelocity",v3_0)
-								twait(0.3)
-							elseif respawntp==2 then
-								insSet(hrp,"CFrame",cfAdd(cfr,cfGet(cfr,"RightVector")*3.5-cfGet(cfr,"LookVector")*3.5))
-								insSet(hrp,"AssemblyLinearVelocity",v3_0)
-								insSet(hrp,"AssemblyAngularVelocity",v3_0)
-								twait(0.3)
-							elseif respawntp==3 then
-								local t=osclock()+0.3
-								local startcf=cfAdd(cfMul(cfGet(cfr,"Rotation"),angles(1.5707963267948966,0,0)),pos*v3_101+v3_010*min(fpdh+30,v3Get(pos,"Y")-5))
-								while twait() do
-									insSet(hrp,"CFrame",startcf)
-									insSet(hrp,"AssemblyLinearVelocity",v3_0)
-									insSet(hrp,"AssemblyAngularVelocity",v3_0)
-									if osclock()>t then
-										break
-									end
+								if osclock()>t then
+									break
 								end
 							end
 						end
