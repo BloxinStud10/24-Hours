@@ -117,6 +117,7 @@ local v2Get=getMetamethodFromErrorStack(v2(),@native function(a,b) return a[b] e
 --its faster to multiply X and Y of vector2 than to multiply vector2 and then get X and Y from it
 
 --no need to index instances every time to call their functions
+local ClearAllChildren=insGet(game,"ClearAllChildren")
 local Destroy=insGet(game,"Destroy")
 local IsA=insGet(game,"IsA")
 local FindFirstChildOfClass=insGet(game,"FindFirstChildOfClass")
@@ -252,7 +253,17 @@ local accessorylimbs={
 	{textureid="97155254696037",C0=angles(1.7671458676442586,-0.16580627893946132,0.39269908169872414),Name="Right Arm"},
 	{textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
 	{textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
-	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"}
+	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
+	
+	--layered
+	{meshid="14159161213",C0=cf_0,Name="Head",Layered=true},
+	{meshid="14085008200",C0=cf_0,Name="Torso",Layered=true},
+	
+	{textureid="13405498956",C0=cf_0,Name="Right Arm",Layered=true},
+	{textureid="13405498709",C0=cf_0,Name="Left Arm",Layered=true},
+	
+	{textureid="13405479171",C0=cf_0,Name="Right Leg",Layered=true},
+	{textureid="13405498485",C0=cf_0,Name="Left Leg",Layered=true},
 }
 
 --querydescendants faster than getchildren and checks in lua
@@ -1785,17 +1796,38 @@ local reanimate=function()
 
 	local mouseCameraMove=false
 	tinsert(cleantable,Connect(insGet(uis,"InputChanged"),function(a,b)
-		if b then return end
+		if b or typeof(scriptablecamcf)=="CFrame" then return end
 		local inputType=insGet(a,"UserInputType")
-		if mouseCameraMove and inputType==enumMM and cameraMoveable and typeof(scriptablecamcf)~="CFrame" then
+		if mouseCameraMove and inputType==enumMM and cameraMoveable then
 			local rotation=GetMouseDelta(uis)
 			camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 			camrotY=v2Get(rotation,"X")*mradN05+camrotY
 			camrot=angles(camrotX,camrotY,0,enumYXZ)
 			camcfLV=cfGet(camrot,"LookVector")
 			camcfRV=cfGet(camrot,"RightVector")
-		elseif inputType==enumMW and typeof(scriptablecamcf)~="CFrame" then
+		elseif inputType==enumMW then
 			cammag+=v3Get(insGet(a,"Position"),"Z")*(0.75-cammag/4)
+			if cammag<0 then
+				firstperson=false
+			else
+				cammag=0
+				firstperson=true
+			end
+		end
+	end))
+	
+	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d)
+		if d or typeof(scriptablecamcf)=="CFrame" then return end
+		if mouseCameraMove and v2Get(b,"Magnitude")>0 then
+			camrotX=clamp(v2Get(b,"Y")*mradN05+camrotX,npi2,pi2)
+			camrotY+=v2Get(b,"X")*mradN05
+			camrot=angles(camrotX,camrotY,0,enumYXZ)
+			camcfLV=cfGet(camrot,"LookVector")
+			camcfRV=cfGet(camrot,"RightVector")
+		end
+		local zoom=a+c
+		if zoom~=0 then
+			cammag+=zoom*(0.75-cammag/4)
 			if cammag<0 then
 				firstperson=false
 			else
