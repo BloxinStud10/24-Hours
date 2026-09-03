@@ -1924,17 +1924,38 @@ local reanimate=function()
 
 	local mouseCameraMove=false
 	tinsert(cleantable,Connect(insGet(uis,"InputChanged"),function(a,b)
-		if b then return end
+		if b or typeof(scriptablecamcf)=="CFrame" then return end
 		local inputType=insGet(a,"UserInputType")
-		if mouseCameraMove and inputType==enumMM and cameraMoveable and typeof(scriptablecamcf)~="CFrame" then
+		if mouseCameraMove and inputType==enumMM and cameraMoveable then
 			local rotation=GetMouseDelta(uis)
 			camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
 			camrotY=v2Get(rotation,"X")*mradN05+camrotY
 			camrot=angles(camrotX,camrotY,0,enumYXZ)
 			camcfLV=cfGet(camrot,"LookVector")
 			camcfRV=cfGet(camrot,"RightVector")
-		elseif inputType==enumMW and typeof(scriptablecamcf)~="CFrame" then
+		elseif inputType==enumMW then
 			cammag+=v3Get(insGet(a,"Position"),"Z")*(0.75-cammag/4)
+			if cammag<0 then
+				firstperson=false
+			else
+				cammag=0
+				firstperson=true
+			end
+		end
+	end))
+	
+	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d)
+		if d or typeof(scriptablecamcf)=="CFrame" then return end
+		if mouseCameraMove and v2Get(b,"Magnitude")>0 then
+			camrotX=clamp(v2Get(b,"Y")*mradN05+camrotX,npi2,pi2)
+			camrotY+=v2Get(b,"X")*mradN05
+			camrot=angles(camrotX,camrotY,0,enumYXZ)
+			camcfLV=cfGet(camrot,"LookVector")
+			camcfRV=cfGet(camrot,"RightVector")
+		end
+		local zoom=a+c
+		if zoom~=0 then
+			cammag+=zoom*(0.75-cammag/4)
 			if cammag<0 then
 				firstperson=false
 			else
