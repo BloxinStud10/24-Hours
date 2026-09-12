@@ -442,7 +442,7 @@ local fetchaccessories=function(c,t)
 				if accessory then
 					accessory=Clone(accessory)
 				else
-					accessory=GetObjects(game,"rbxassetid://"..a)
+					accessory=GetObjects(game,tonumber(a) and `rbxassetid://{a}` or a)
 					if typeof(accessory)=="table" then
 						accessory=accessory[1]
 					end
