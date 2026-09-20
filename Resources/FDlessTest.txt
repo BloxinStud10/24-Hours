@@ -4,8 +4,8 @@
 	From Patchma Hub [Test]
 	Version 61E (E is only here cuz it edited)
 	
-	patch patch patch sahur
-	exploit is dead
+	MyWorld will forever stay in our hearts
+	A certain individual, you are just a Pretentious owner
 	
 	HAX server: discord.gg/QMy5f6DrbH
 ]]
@@ -43,7 +43,6 @@ local type=type
 local typeof=typeof
 local game=game
 local sethiddenproperty=sethiddenproperty or set_hidden_property or set_hidden_prop or sethiddenprop
-local gethiddenproperty=gethiddenproperty or get_hidden_property or get_hidden_prop or gethiddenprop
 local setscriptable=setscriptable
 local replicatesignal=replicatesignal
 local cloneref=cloneref or function(...) return ... end
@@ -256,16 +255,6 @@ local accessorylimbs={
 	{textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
 	{textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
 	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
-	
-	--layered
-	{meshid="14159161213",C0=cf_0,Name="Head",Layered=true},
-	{meshid="14085008200",C0=cf_0,Name="Torso",Layered=true},
-	
-	{textureid="13405498956",C0=cf_0,Name="Right Arm",Layered=true},
-	{textureid="13405498709",C0=cf_0,Name="Left Arm",Layered=true},
-	
-	{textureid="13405479171",C0=cf_0,Name="Right Leg",Layered=true},
-	{textureid="13405498485",C0=cf_0,Name="Left Leg",Layered=true},
 }
 
 --querydescendants faster than getchildren and checks in lua
@@ -455,14 +444,18 @@ local fetchaccessories=function(c,t)
 					local attachment=QueryDescendants(handle,">Attachment")[1] or FindFirstChildOfClass(handle,"Attachment")
 					local attachmentt=attachments[insGet(hum,"RigType")][insGet(attachment,"Name")]
 				
-					insSet(accessory,"Name","!"..insGet(accessory,"Name"))
+					insSet(accessory,"Name",`!{insGet(accessory,"Name")}`)
 					insSet(handle,"CanCollide",false)
 					insSet(handle,"Massless",true)
-					insSet(mesh,"Scale",insGet(mesh,"Scale")*s)
+					if mesh then
+						insSet(mesh,"Scale",insGet(mesh,"Scale")*s)
+					else
+						insSet(handle,"Size",insGet(handle,"Size")*s)
+					end
 					insSet(weld,"C0",insGet(attachment,"CFrame"))
 					insSet(weld,"C1",attachmentt[2])
 					insSet(weld,"Part0",handle)
-					local part1=QueryDescendants(c,">BasePart#"..attachmentt[1])[1] or timeQueryDescendants(c,">BasePart#"..attachmentt[1],1)[1]
+					local part1=QueryDescendants(c,`>BasePart#{attachmentt[1]}`)[1] or timeQueryDescendants(c,`>BasePart#{attachmentt[1]}`,1)[1]
 					if part1 then
 						insSet(weld,"Part1",part1)
 					end
@@ -986,6 +979,24 @@ local reanimate=function()
 			end
 		end
 		return pt
+	end
+	
+	local getAccessories=@native function(blacklist)
+		local t={}
+		if blacklist then
+			for v,_ in next,cframes do
+				if v.m and (not tfind(blacklist,v)) and (v.m or v.t) then
+					tinsert(t,v)
+				end
+			end
+		else
+			for v,_ in next,cframes do
+				if v.m and (v.m or v.t) then
+					tinsert(t,v)
+				end
+			end
+		end
+		return t
 	end
 
 	local raycastparams=rp()
@@ -1554,7 +1565,11 @@ local reanimate=function()
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
-							ChangeState(h,enumdead)
+							if sethiddenproperty then
+								sethiddenproperty(h,"NetworkHumanoidState",enumdead)
+							else
+								ChangeState(h,enumdead)
+							end
 							if replicatesignal then
 								local success,ServerBreakJoints=pcall(insGet,h,"ServerBreakJoints")
 								if success then
@@ -2622,17 +2637,18 @@ local reanimate=function()
 	end
 
 	local velbycfrvec=@native function() --this returns 2 values: forward/backwards movement (from -1 to 1), right/left movement (from -1 to 1)
-		local fw=cfGet(cfr,"LookVector")*xzvel/walkSpeed
-		local rt=cfGet(cfr,"RightVector")*xzvel/walkSpeed
+		local velN=xzvel/walkSpeed
+		local fw=cfGet(cfr,"LookVector")*velN
+		local rt=cfGet(cfr,"RightVector")*velN
 		return v3Get(fw,"X")+v3Get(fw,"Z"),v3Get(rt,"X")+v3Get(rt,"Z")
 	end
 
 	local lastvel=v3_0
 	local velchg1=v3_0
 	local velchgbycfrvec=@native function() --this returns 2 values: forward/backwards velocity change, right/left velocity change
-		velchg1=velchg1+(lastvel-xzvel) --i recommend setting velchg1 to v3_0 when u start using this function or it will look worse
+		velchg1+=lastvel-xzvel --i recommend setting velchg1 to v3_0 when u start using this function or it will look worse
 		lastvel=xzvel
-		velchg1=velchg1-velchg1*(deltaTime/2)
+		velchg1-=velchg1*(deltaTime/2)
 		local fw=cfGet(cfr,"LookVector")*velchg1/32
 		local rt=cfGet(cfr,"RightVector")*velchg1/32
 		return v3Get(fw,"X")+v3Get(fw,"Z"),v3Get(rt,"X")+v3Get(rt,"Z")
@@ -2643,7 +2659,7 @@ local reanimate=function()
 	local velYchg=@native function() --this returns Y axis velocity change
 		velYchg1=clamp(velYchg1+(lastYvel-Yvel),-50,50) --i recommend setting velYchg1 to 0 when u start using this function or it will look worse
 		lastYvel=Yvel
-		velYchg1=velYchg1-velYchg1*(deltaTime/2)
+		velYchg1-=velYchg1*(deltaTime/2)
 		return velYchg1
 	end
 
@@ -2835,6 +2851,7 @@ local reanimate=function()
 		getAccWeldsFromMesh=getAccWeldsFromMesh,
 		getJoint=getJoint,
 		getPartJoint=getPartJoint,
+		getAccessories=getAccessories,
 		rotToMouse=rotToMouse,
 		rotToPos=rotToPos,
 		glitchJoint=glitchJoint,
