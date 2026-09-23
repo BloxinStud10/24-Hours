@@ -15,17 +15,17 @@ without explicit permission from the author.
 ## Credits
 ### 24-HOURS Team
 #### White Hat [Owner]
-    > Started 24-HOURS Project and helping with the project
+    Started 24-HOURS Project and helping with the project
     
 #### [Epicatos](https://github.com/BloxinStud10) [CO-Owner & Publisher]
-    > A decent scripter but also a lazy ass [also that's me]
+    A decent scripter but also a lazy ass [also that's me]
 
 ### Honourable mentions
 #### @myworldmain [goat]
-    > Made FDless reanimation and he's damn cool
+    Made FDless reanimation and he's damn cool
 
 #### malik (& cyanide)
-    > Made APT (Anti-Env) which protected our projects from bad actors
+    Made APT (Anti-Env) which protected our projects from bad actors
 
 ## Socials
 Discord: [R5ruqDYecH](https://discord.gg/R5ruqDYecH)
