@@ -4,7 +4,7 @@ We are independent scripters that aims to provide users the best experiences.<br
 
 <h1 align="center">General Info</h1>
 Everything in this repository are obfuscated and protected very well so don't try to get them with third-party tools.<br>
-But with the exception for `Resources`. You are free to modify anything here, we don't mind.<br>
+But with the exception for [Resources]. You are free to modify anything here, we don't mind.<br>
 
 <h1 align="center">Licenses & Rights</h1>
 Copyright (c) 24-HOURS. All rights reserved.
@@ -29,4 +29,5 @@ without explicit permission from the author.
 
 ## Socials
 Discord: [R5ruqDYecH](https://discord.gg/R5ruqDYecH)
+
 Youtube: [@white_hat.1](https://youtube.com/@white_hat.1)
