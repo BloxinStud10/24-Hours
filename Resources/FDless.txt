@@ -4,8 +4,7 @@
 	From Patchma Hub
 	Version 61E (E is only here cuz it edited)
 	
-	patch patch patch sahur
-	exploit is dead
+	MyWorld will forever stay in our hearts
 	
 	HAX server: discord.gg/QMy5f6DrbH
 ]]
@@ -43,7 +42,6 @@ local type=type
 local typeof=typeof
 local game=game
 local sethiddenproperty=sethiddenproperty or set_hidden_property or set_hidden_prop or sethiddenprop
-local gethiddenproperty=gethiddenproperty or get_hidden_property or get_hidden_prop or gethiddenprop
 local setscriptable=setscriptable
 local replicatesignal=replicatesignal
 local cloneref=cloneref or function(...) return ... end
@@ -174,7 +172,6 @@ local Inverse=cfGet(cf_0,"Inverse")
 local Lerp=cfGet(cf_0,"Lerp")
 local ToEulerAnglesYXZ=cfGet(cf_0,"ToEulerAnglesYXZ")
 
-local secrets={}
 local accessorylimbs={
 	{meshid="117287001096396",C0=cf_0,Name="Left Arm"},
 	{meshid="117287001096396",C0=cf_0,Name="Right Arm"},
@@ -254,16 +251,6 @@ local accessorylimbs={
 	{textureid="82390202293774",C0=angles(1.7671458676442586,0.16580627893946132,-0.39269908169872414),Name="Left Arm"},
 	{textureid="93374633946646",C0=angles(1.7802358370342162,0.1832595714594046,-0.3839724354387525),Name="Right Leg"},
 	{textureid="133680105074740",C0=angles(1.7802358370342162,-0.1832595714594046,0.3839724354387525),Name="Left Leg"},
-	
-	--layered
-	{meshid="14159161213",C0=cf_0,Name="Head",Layered=true},
-	{meshid="14085008200",C0=cf_0,Name="Torso",Layered=true},
-	
-	{textureid="13405498956",C0=cf_0,Name="Right Arm",Layered=true},
-	{textureid="13405498709",C0=cf_0,Name="Left Arm",Layered=true},
-	
-	{textureid="13405479171",C0=cf_0,Name="Right Leg",Layered=true},
-	{textureid="13405498485",C0=cf_0,Name="Left Leg",Layered=true},
 }
 
 --querydescendants faster than getchildren and checks in lua
@@ -354,6 +341,7 @@ end
 local hlp=(gethui and gethui()) or (cloneref((typeof(cg)=="Instance" and cg) or pg))
 
 local allowshiftlock=nil
+local allowfreecam=nil
 local ctrltp=nil
 local placeholders=nil
 local allowfling=true
@@ -370,6 +358,7 @@ local prercd=false
 
 local availableSettings={
 	"allowshiftlock",
+	"allowfreecam",
 	"ctrltp",
 	"placeholders",
 	"allowfling",
@@ -387,6 +376,7 @@ local availableSettings={
 
 local applysettings=@native function(t)
 	allowshiftlock=t.allowshiftlock~=nil and t.allowshiftlock
+	allowfreecam=t.allowfreecam~=nil and t.allowfreecam
 	ctrltp=t.ctrltp~=nil and t.ctrltp
 	placeholders=t.placeholders~=nil and t.placeholders
 	clickfling=t.clickfling~=nil and t.clickfling
@@ -491,6 +481,7 @@ local stopreanimate=@native function()
 		end
 		insSet(ws,"FallenPartsDestroyHeight",fpdh)
 		insSet(uis,"MouseBehavior",enumMD)
+		insSet(gs,"TouchControlsEnabled",true)
 		onnewcamera()
 		return true
 	end
@@ -525,6 +516,7 @@ local reanimate=function()
 		cam=newcam
 	end
 	refcam()
+	local freecam=false
 	local camoff=cf_0
 	local camcf=insGet(cam,"CFrame")
 	local scriptablecamcf=nil
@@ -547,8 +539,14 @@ local reanimate=function()
 			return Disconnect(camcon2) 
 		end
 		camcon0=Connect(GetPropertyChangedSignal(cam,"CFrame"),function()
-			if insGet(cam,"CFrame")~=cfMul(camcf,camoff) then
-				insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			if freecam then
+				if insGet(cam,"CFrame")~=camcf then
+					insSet(cam,"CFrame",camcf)
+				end
+			else
+				if insGet(cam,"CFrame")~=scriptablecamcf or cfMul(camcf,camoff) then
+					insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+				end
 			end
 		end)
 		camcon1=Connect(GetPropertyChangedSignal(cam,"CameraType"),function()
@@ -559,8 +557,14 @@ local reanimate=function()
 		if insGet(cam,"CameraType")~=enumCamS then
 			insSet(cam,"CameraType",enumCamS)
 		end
-		if insGet(cam,"CFrame")~=cfMul(camcf,camoff) then
-			insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+		if freecam then
+			if insGet(cam,"CFrame")~=camcf then
+				insSet(cam,"CFrame",camcf)
+			end
+		else
+			if insGet(cam,"CFrame")~=scriptablecamcf or cfMul(camcf,camoff) then
+				insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			end
 		end
 	end
 	camcon2=Connect(GetPropertyChangedSignal(ws,"CurrentCamera"),onnewcamera)
@@ -862,6 +866,24 @@ local reanimate=function()
 		end
 		return pt
 	end
+	
+	local getAccessories=@native function(blacklist)
+		local t={}
+		if blacklist then
+			for v,_ in next,cframes do
+				if v.m and (not tfind(blacklist,v)) and (v.m or v.t) then
+					tinsert(t,v)
+				end
+			end
+		else
+			for v,_ in next,cframes do
+				if v.m and (v.m or v.t) then
+					tinsert(t,v)
+				end
+			end
+		end
+		return t
+	end
 
 	local raycastparams=rp()
 	raycastparams.FilterType=e.RaycastFilterType.Exclude
@@ -1021,33 +1043,6 @@ local reanimate=function()
 				cframes[i]=insGet(p,"CFrame")
 				return
 			end
-			
-			--[[
-			for n,i in next,RCDparts do
-				local pt=i.p
-				if pt and IsDescendantOf(pt,c) then
-					if pt==p then
-						return
-					end
-				else
-					i.p=p
-					i.l=insGet(p,"Position")
-					makePartCons(p,i)
-					return
-				end
-				if n==insGet(p,"Name") then
-					i.p=p
-					makePartCons(p,i)
-					if placeholders then
-						i.v=makeplaceholder(p)
-						i.b=false
-					end
-					for i,v in next,GetJoints(p) do
-						Destroy(v)
-					end
-					return
-				end
-			end]]
 			
 			local v1=attachments[insGet(v,"Name")]
 			if v1 then
@@ -1221,7 +1216,7 @@ local reanimate=function()
 								insSet(p,"Parent",ws)
 								insSet(p,"CFrame",tcfr1)
 								insSet(hrp,"Parent",model)
-								insSet(hrp,"CFrame",tcfr1+(insGet(hrp,"Size")+insGet(p,"Size"))*sm)
+								insSet(hrp,"CFrame",cfAdd(tcfr1,(insGet(hrp,"Size")+insGet(p,"Size"))*sm))
 								insSet(p,"CustomPhysicalProperties",dense)
 								insSet(hrp,"CustomPhysicalProperties",light)
 								insSet(model,"Parent",ws)
@@ -1289,7 +1284,6 @@ local reanimate=function()
 											insSet(v,"Parent",nil)
 										end
 										for i,v in next,GetJoints(i0) do
-	
 											restorejoints[v]=insGet(v,"Parent")
 											insSet(v,"Parent",nil)
 										end
@@ -1298,7 +1292,7 @@ local reanimate=function()
 										insSet(i0,"Parent",ws)
 										insSet(i0,"CFrame",tcfr1)
 										insSet(hrp,"Parent",model)
-										insSet(hrp,"CFrame",tcfr1+(insGet(hrp,"Size")+insGet(i0,"Size"))*sm)
+										insSet(hrp,"CFrame",cfAdd(tcfr1,(insGet(hrp,"Size")+insGet(i0,"Size"))*sm))
 										insSet(i0,"CustomPhysicalProperties",dense)
 										insSet(hrp,"CustomPhysicalProperties",light)
 										insSet(model,"Parent",ws)
@@ -1426,7 +1420,11 @@ local reanimate=function()
 						local h=FindFirstChildOfClass(newc,"Humanoid")
 						if h then
 							insSet(h,"Health",0)
-							ChangeState(h,enumdead)
+							if sethiddenproperty then
+								sethiddenproperty(h,"NetworkHumanoidState",enumdead)
+							else
+								ChangeState(h,enumdead)
+							end
 							if replicatesignal then
 								local success,ServerBreakJoints=pcall(insGet,h,"ServerBreakJoints")
 								if success then
@@ -1597,6 +1595,12 @@ local reanimate=function()
 	local Dpressed=IsKeyDown(uis,keyD)
 	local keySpace=KeyCode.Space
 	local jumpingInput=IsKeyDown(uis,keySpace)
+	
+	local keyP=KeyCode.P
+	local keyLeftControl=KeyCode.LeftControl
+	local keyRightControl=KeyCode.RightControl
+	local keyLeftShift=KeyCode.LeftShift
+	local keyRightShift=KeyCode.RightShift
 
 	local FWmovement=0
 	local RTmovement=0
@@ -1606,7 +1610,6 @@ local reanimate=function()
 	end
 	refreshKeyboardMovement()
 
-	local keyShift=KeyCode.LeftShift
 	tinsert(cleantable,Connect(insGet(uis,"InputBegan"),function(a)
 		if insGet(gs,"MenuIsOpen") or GetFocusedTextBox(uis) then
 			return
@@ -1629,8 +1632,11 @@ local reanimate=function()
 			refreshKeyboardMovement()
 		elseif a==keySpace then
 			jumpingInput=true
-		elseif a==keyShift then
+		elseif a==keyLeftShift then
 			shiftlock=allowshiftlock and not shiftlock
+		elseif a==keyP and (IsKeyDown(uis,keyLeftControl) or IsKeyDown(uis,keyRightControl)) and (IsKeyDown(uis,keyLeftShift) or IsKeyDown(uis,keyRightShift)) then
+			freecam=allowfreecam and not freecam
+			insSet(gs,"TouchControlsEnabled",not freecam)
 		elseif modes[a] then
 			local modeLeft=modes[mode].modeLeft
 			if modeLeft then
@@ -1720,8 +1726,8 @@ local reanimate=function()
 			local direction=insGet(inputObject,"Position")-thumbstickTouchStart
 			local directionMag=vmagnitude(direction)/thumbstickSizeMultiplier
 			if directionMag>0.05 then
-				isWalking=true
 				direction=vnormalize(direction)*min(1,(directionMag-0.05)/0.95) 
+				isWalking=true
 				FWmovement=-v3Get(direction,"Y")
 				RTmovement=v3Get(direction,"X")
 			else
@@ -1730,16 +1736,21 @@ local reanimate=function()
 		elseif inputObject==jumpInputObject then
 			jumpingInput=touchY>jumpStartY and touchX>jumpStartX and touchX<jumpEndX and touchY<jumpEndY
 		else
-			if cameraZoomInputObject and typeof(scriptablecamcf)~="CFrame" then
+			if cameraZoomInputObject then
 				local newMagnitude=vmagnitude(insGet(cameraRotateInputObject,"Position")-insGet(cameraZoomInputObject,"Position"))
-				cammag=cammag+(newMagnitude-cameraZoomInputMagnitude)*0.04*(0.75-cammag/4)
-				cameraZoomInputMagnitude=newMagnitude
-				if cammag<0 then
-					firstperson=false
-				else
-					cammag=0
-					firstperson=true
+				if freecam then
+					local delta=(newMagnitude-cameraZoomInputMagnitude)*0.04
+					camcf=cfAdd(camcf,camcfLV*delta)
+				elseif typeof(scriptablecamcf)~="CFrame" then
+					cammag+=(newMagnitude-cameraZoomInputMagnitude)*0.04*(0.75-cammag/4)
+					if cammag<0 then
+						firstperson=false
+					else
+						cammag=0
+						firstperson=true
+					end
 				end
+				cameraZoomInputMagnitude=newMagnitude
 			elseif inputObject==cameraRotateInputObject and cameraMoveable and typeof(scriptablecamcf)~="CFrame" then
 				local rotation=GetMouseDelta(uis)
 				camrotX=clamp(v2Get(rotation,"Y")*mradN05+camrotX,npi2,pi2)
@@ -1747,6 +1758,9 @@ local reanimate=function()
 				camrot=angles(camrotX,camrotY,0,enumYXZ)
 				camcfLV=cfGet(camrot,"LookVector")
 				camcfRV=cfGet(camrot,"RightVector")
+				if freecam then
+					camcf=cfAdd(camrot,cfGet(camcf,"Position"))
+				end
 			end
 		end
 	end))
@@ -1805,18 +1819,25 @@ local reanimate=function()
 			camrot=angles(camrotX,camrotY,0,enumYXZ)
 			camcfLV=cfGet(camrot,"LookVector")
 			camcfRV=cfGet(camrot,"RightVector")
+			if freecam then
+				camcf=cfAdd(camrot,cfGet(camcf,"Position"))
+			end
 		elseif inputType==enumMW then
-			cammag+=v3Get(insGet(a,"Position"),"Z")*(0.75-cammag/4)
-			if cammag<0 then
-				firstperson=false
+			if freecam then
+				camcf=cfAdd(camcf,camcfLV*(v3Get(insGet(a,"Position"),"Z")*2))
 			else
-				cammag=0
-				firstperson=true
+				cammag+=v3Get(insGet(a,"Position"),"Z")*(0.75-cammag/4)
+				if cammag<0 then
+					firstperson=false
+				else
+					cammag=0
+					firstperson=true
+				end
 			end
 		end
 	end))
 	
-	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d)
+	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d) --"every updates you guys made are from me" yeah sure bud, yours didnt even have this lmao, now copy and paste this to your update to prove my point
 		if d or typeof(scriptablecamcf)=="CFrame" then return end
 		if mouseCameraMove and v2Get(b,"Magnitude")>0 then
 			camrotX=clamp(v2Get(b,"Y")*mradN05+camrotX,npi2,pi2)
@@ -1824,15 +1845,22 @@ local reanimate=function()
 			camrot=angles(camrotX,camrotY,0,enumYXZ)
 			camcfLV=cfGet(camrot,"LookVector")
 			camcfRV=cfGet(camrot,"RightVector")
+			if freecam then
+				camcf=cfAdd(camrot,cfGet(camcf,"Position"))
+			end
 		end
 		local zoom=a+c
 		if zoom~=0 then
-			cammag+=zoom*(0.75-cammag/4)
-			if cammag<0 then
-				firstperson=false
+			if freecam then
+				camcf=cfAdd(camcf,camcfLV*(zoom*2))
 			else
-				cammag=0
-				firstperson=true
+				cammag+=zoom*(0.75-cammag/4)
+				if cammag<0 then
+					firstperson=false
+				else
+					cammag=0
+					firstperson=true
+				end
 			end
 		end
 	end))
@@ -1856,7 +1884,7 @@ local reanimate=function()
 				target=insGet(target,"Parent")
 			end
 		end
-		if (not IsA(target,"Model")) or (target==c) then
+		if (not IsA(target,"Model")) or (target==c) or IsDescendantOf(target,c) then
 			return false
 		end
 		local targetpart=QueryDescendants(target,">BasePart#HumanoidRootPart")[1] or QueryDescendants(target,">BasePart#Torso")[1] or QueryDescendants(target,">BasePart#UpperTorso")[1]
@@ -1914,7 +1942,7 @@ local reanimate=function()
 					insSet(p,"Parent",ws)
 					insSet(p,"CFrame",tcfr1)
 					insSet(root,"Parent",model)
-					insSet(root,"CFrame",tcfr1+(insGet(root,"Size")+insGet(p,"Size"))*sm)
+					insSet(root,"CFrame",cfAdd(tcfr1,(insGet(hrp,"Size")+insGet(p,"Size"))*sm))
 					insSet(p,"CustomPhysicalProperties",dense)
 					insSet(root,"CustomPhysicalProperties",light)
 					insSet(model,"Parent",ws)
@@ -1939,7 +1967,7 @@ local reanimate=function()
 	end
 
 	if ctrlclicktp then
-		ctrlclicktp=KeyCode.LeftControl
+		ctrlclicktp=keyLeftControl
 		local tpoff=v3_010*3
 		if clickfling then
 			tinsert(cleantable,Connect(insGet(mouse,"Button1Down"),function()
@@ -1947,6 +1975,7 @@ local reanimate=function()
 					if IsKeyDown(uis,ctrlclicktp) then
 						pos=cfGet(insGet(mouse,"Hit"),"Position")+tpoff
 						cfr=cfl(pos,pos+camcfLV*v3_101)
+						cframes[rootpart]=cfr
 						xzvel=v3_0
 						Yvel=0
 					else
@@ -1959,6 +1988,7 @@ local reanimate=function()
 				if insGet(mouse,"Target") and IsKeyDown(uis,ctrlclicktp) then
 					pos=cfGet(insGet(mouse,"Hit"),"Position")+tpoff
 					cfr=cfl(pos,pos+camcfLV*v3_101)
+					cframes[rootpart]=cfr
 					xzvel=v3_0
 					Yvel=0
 				end
@@ -1996,7 +2026,7 @@ local reanimate=function()
 			else
 				shiftlock=false
 			end
-		elseif firstperson then
+		elseif firstperson or freecam then
 			if mouseBehavior~=enumMLC then
 				mouseBehavior=enumMLC
 				insSet(uis,"MouseBehavior",mouseBehavior)
@@ -2041,8 +2071,36 @@ local reanimate=function()
 			raycastdistance=hhOff1
 			onground=false
 		end
-
-		if firstperson then
+		
+		if freecam then
+			xzvel=v3_0
+			if isWalking then
+				local dirv=vnormalize(vnormalize(camcfLV)*FWmovement+vnormalize(camcfRV)*RTmovement)*10*deltaTime
+				camcf=cfAdd(camrot,cfGet(cfAdd(camcf,dirv),"Position"))
+			end
+			if onground then
+				cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
+				cframes[rootpart]=cfr
+				insSet(cam,"CFrame",camcf)
+				lerpsIdle()
+				noYvelTime=min(noYvelTime+delta*0.3,1)
+				xzvel*=(1-noYvelTime)
+			elseif Yvel>0 then
+				pos+=v3_010*Yvel*delta
+				cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
+				cframes[rootpart]=cfr
+				insSet(cam,"CFrame",camcf)
+				lerpsJump()
+				noYvelTime=0
+			else
+				pos+=v3_010*Yvel*delta
+				cfr=cfAdd(cfGet(cfr,"Rotation"),pos)
+				cframes[rootpart]=cfr
+				insSet(cam,"CFrame",camcf)
+				lerpsFall()
+				noYvelTime=0
+			end
+		elseif firstperson then
 			if isWalking then
 				if walkSpeed==0 then
 					xzvel=v3_0
@@ -2494,17 +2552,18 @@ local reanimate=function()
 	end
 
 	local velbycfrvec=@native function() --this returns 2 values: forward/backwards movement (from -1 to 1), right/left movement (from -1 to 1)
-		local fw=cfGet(cfr,"LookVector")*xzvel/walkSpeed
-		local rt=cfGet(cfr,"RightVector")*xzvel/walkSpeed
+		local velN=xzvel/walkSpeed
+		local fw=cfGet(cfr,"LookVector")*velN
+		local rt=cfGet(cfr,"RightVector")*velN
 		return v3Get(fw,"X")+v3Get(fw,"Z"),v3Get(rt,"X")+v3Get(rt,"Z")
 	end
 
 	local lastvel=v3_0
 	local velchg1=v3_0
 	local velchgbycfrvec=@native function() --this returns 2 values: forward/backwards velocity change, right/left velocity change
-		velchg1=velchg1+(lastvel-xzvel) --i recommend setting velchg1 to v3_0 when u start using this function or it will look worse
+		velchg1+=lastvel-xzvel --i recommend setting velchg1 to v3_0 when u start using this function or it will look worse
 		lastvel=xzvel
-		velchg1=velchg1-velchg1*(deltaTime/2)
+		velchg1-=velchg1*(deltaTime/2)
 		local fw=cfGet(cfr,"LookVector")*velchg1/32
 		local rt=cfGet(cfr,"RightVector")*velchg1/32
 		return v3Get(fw,"X")+v3Get(fw,"Z"),v3Get(rt,"X")+v3Get(rt,"Z")
@@ -2515,7 +2574,7 @@ local reanimate=function()
 	local velYchg=@native function() --this returns Y axis velocity change
 		velYchg1=clamp(velYchg1+(lastYvel-Yvel),-50,50) --i recommend setting velYchg1 to 0 when u start using this function or it will look worse
 		lastYvel=Yvel
-		velYchg1=velYchg1-velYchg1*(deltaTime/2)
+		velYchg1-=velYchg1*(deltaTime/2)
 		return velYchg1
 	end
 
@@ -2564,14 +2623,20 @@ local reanimate=function()
 		local type=typeof(v)
 		if type=="CFrame" then
 			local newpos=cfGet(v,"Position")
-			camcf=cfAdd(camcf,newpos-pos)
-			insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			if not freecam then
+				camcf=cfAdd(camcf,newpos-pos)
+				insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			end
 			cfr=v
+			cframes[rootpart]=cfr
 			pos=newpos
 		elseif type=="Vector3" then
-			camcf=cfAdd(camcf,v-pos)
-			insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			if not freecam then
+				camcf=cfAdd(camcf,v-pos)
+				insSet(cam,"CFrame",scriptablecamcf or cfMul(camcf,camoff))
+			end
 			cfr=cfAdd(cfGet(cfr,"Rotation"),v)
+			cframes[rootpart]=cfr
 			pos=v
 		end
 	end
@@ -2605,6 +2670,10 @@ local reanimate=function()
 	end
 	local setshiftlock=function(v) --turns on/off shiftlock
 		shiftlock=v
+	end
+	local setfreecam=function(v) --turns on/off freecam
+		freecam=v
+		insSet(gs,"TouchControlsEnabled",not v)
 	end
 	local setNoVelocity=@native function(b) --true if u want yo char to has no velocity
 		noVelMode=b
@@ -2707,6 +2776,7 @@ local reanimate=function()
 		getAccWeldsFromMesh=getAccWeldsFromMesh,
 		getJoint=getJoint,
 		getPartJoint=getPartJoint,
+		getAccessories=getAccessories,
 		rotToMouse=rotToMouse,
 		rotToPos=rotToPos,
 		glitchJoint=glitchJoint,
@@ -2716,6 +2786,7 @@ local reanimate=function()
 		setCfr=setCfr,
 		setCamCF=setCamCF,
 		setshiftlock=setshiftlock,
+		setfreecam=setfreecam,
 		setCameraMoveable=setCameraMoveable,
 		setNoVelocity=setNoVelocity,
 		getWalkSpeed=getWalkSpeed,
@@ -2738,4 +2809,4 @@ local reanimate=function()
 	return currenttable
 end
 
-return {reanimate=reanimate,stopreanimate=stopreanimate,timeQueryDescendants=timeQueryDescendants,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,currenttable=function() return currenttable end,pdfunc=emptyfunction,availableSettings=availableSettings,addSecrets=function(t) for i,v in next,t do if not secrets[i] and type(v)=="function" then secrets[i]=v end end end}
+return {reanimate=reanimate,stopreanimate=stopreanimate,timeQueryDescendants=timeQueryDescendants,getMetamethodFromErrorStack=getMetamethodFromErrorStack,insSet=insSet,insGet=insGet,cfGet=cfGet,cfMul=cfMul,cfAdd=cfAdd,v3Get=v3Get,v2Get=v2Get,rs=rs,mouse=mouse,emptyfunction=emptyfunction,Draggable=Draggable,applysettings=applysettings,returnDelta=returnDelta,getcharacter=getcharacter,cleantable=cleantable,onstopcallback=onstopcallback,currenttable=function() return currenttable end,pdfunc=emptyfunction,availableSettings=availableSettings,addSecrets=emptyfunction}
