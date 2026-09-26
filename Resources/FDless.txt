@@ -69,20 +69,6 @@ local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
 
-local enumphysics=e.HumanoidStateType.Physics
-local enumragdoll=e.HumanoidStateType.Ragdoll
-local enumrunning=e.HumanoidStateType.Running
-local enumseated=e.HumanoidStateType.Seated
-local enumdead=e.HumanoidStateType.Dead
-local enumMD=e.MouseBehavior.Default
-
-local sm=v3_010/2
-local dense=pp(100,0,0,100,100)
-local light=pp(0.0001,0,0,100,100)
-local humstatetypes=e.HumanoidStateType:GetEnumItems()
-tremove(humstatetypes,tfind(humstatetypes,enumrunning))
-tremove(humstatetypes,tfind(humstatetypes,e.HumanoidStateType.None))
-
 --not "local function rs" to not assign debug names
 --table.concat is much faster than string interpolation
 local rs=@native function()
@@ -106,6 +92,8 @@ local getMetamethodFromErrorStack=function(userdata,f,test)
 end
 local insSet=getMetamethodFromErrorStack(game,function(a,b,c) a[b]=c end,function(f) local a=i("Folder") local b=rs() f(a,"Name",b) return a.Name==b end)
 local insGet=getMetamethodFromErrorStack(game,function(a,b) return a[b] end,function(f) local a=i("Folder") local b=rs() a.Name=b return f(a,"Name")==b end)
+local eGet=getMetamethodFromErrorStack(e,@native function(a,b) return a[b] end,function(f) return e.Material==f(e,"Material") end)
+local etGet=getMetamethodFromErrorStack(eGet(e,"Material"),@native function(a,b) return a[b] end,function(f) local t=eGet(e,"Material") return t.Neon==f(t,"Neon") end)
 local cfGet=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a[b] end,function(f) return f(cf(1,2,3),"Position")==v3(1,2,3) end)
 local cfMul=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a*b end,function(f) return angles(1,2,3)*angles(1,2,3)==f(angles(1,2,3),angles(1,2,3)) end)
 local cfAdd=getMetamethodFromErrorStack(cf_0,@native function(a,b) return a+b end,function(f) return cf(1,2,3)+v3(1,2,3)==f(cf(1,2,3),v3(1,2,3)) end)
@@ -294,16 +282,33 @@ local makeplaceholder=@native function(v)
 end
 local emptyfunction=function() end
 
+--i like to put enums here
+local humanoidStateType=eGet(e,"HumanoidStateType")
+local mouseBehaviorType=eGet(e,"MouseBehavior")
+local keyCode=eGet(e,"KeyCode")
+local rotationOrder=eGet(e,"RotationOrder")
+local userInputType=eGet(e,"UserInputType")
+
+local enumphysics=etGet(humanoidStateType,"Physics")
+local enumragdoll=etGet(humanoidStateType,"Ragdoll")
+local enumrunning=etGet(humanoidStateType,"Running")
+local enumseated=etGet(humanoidStateType,"Seated")
+local enumdead=etGet(humanoidStateType,"Dead")
+local enumMD=etGet(mouseBehaviorType,"Default")
+local enumCamS=etGet(eGet(e,"CameraType"),"Scriptable")
+local enumRFTExclude=etGet(eGet(e,"RaycastFilterType"),"Exclude")
+local enumH=etGet(eGet(e,"CoreGuiType"),"Health")
+
 local Draggable=function(window,obj)
-	local MB1enum = e.UserInputType.MouseButton1
-	local TOUCHenum = e.UserInputType.Touch
-	obj = obj or window
-	local active = insGet(obj,"Active")
-	local mouseStart = nil
-	local dragStart = nil
-	local inputbegancon = nil
-	local rendersteppedcon = nil
-	local inputendedcon = nil
+	local MB1enum=etGet(userInputType,"MouseButton1")
+	local TOUCHenum=etGet(userInputType,"Touch")
+	obj=obj or window
+	local active=insGet(obj,"Active")
+	local mouseStart=nil
+	local dragStart=nil
+	local inputbegancon=nil
+	local rendersteppedcon=nil
+	local inputendedcon=nil
 	local inputendedf=function(a)
 		a=insGet(a,"UserInputType")
 		if (a==MB1enum) or (a==TOUCHenum) then
@@ -312,7 +317,7 @@ local Draggable=function(window,obj)
 		end
 	end
 	local rendersteppedf=function()
-		local off = GetMouseLocation(uis)-mouseStart
+		local off=GetMouseLocation(uis)-mouseStart
 		insSet(window,"Position",dragStart+u2(0,v2Get(off,"X"),0,v2Get(off,"Y")))
 	end
 	local inputbeganf=function(a)
@@ -321,24 +326,30 @@ local Draggable=function(window,obj)
 			mouseStart=GetMouseLocation(uis)
 			dragStart=insGet(window,"Position")
 			if rendersteppedcon then Disconnect(rendersteppedcon) end
-			rendersteppedcon = Connect(renderstepped,rendersteppedf)
+			rendersteppedcon=Connect(renderstepped,rendersteppedf)
 			if inputendedcon then Disconnect(inputendedcon) end
-			inputendedcon = Connect(insGet(uis,"InputEnded"),inputendedf)
+			inputendedcon=Connect(insGet(uis,"InputEnded"),inputendedf)
 		end
 	end
 	Connect(insGet(obj,"MouseEnter"),function()
 		if inputbegancon then Disconnect(inputbegancon) end
-		inputbegancon = Connect(insGet(uis,"InputBegan"),inputbeganf)
+		inputbegancon=Connect(insGet(uis,"InputBegan"),inputbeganf)
 	end)
 	Connect(insGet(obj,"MouseLeave"),function()
 		Disconnect(inputbegancon)
 	end)
 	Connect(GetPropertyChangedSignal(obj,"Active"),function()
-		active = insGet(obj,"Active")
+		active=insGet(obj,"Active")
 	end)
 end
 
 local hlp=(gethui and gethui()) or (cloneref((typeof(cg)=="Instance" and cg) or pg))
+local sm=v3_010/2
+local dense=pp(100,0,0,100,100)
+local light=pp(0.0001,0,0,100,100)
+local humstatetypes=etGet(humanoidStateType,"GetEnumItems")(humanoidStateType)
+tremove(humstatetypes,tfind(humstatetypes,enumrunning))
+tremove(humstatetypes,tfind(humstatetypes,etGet(humanoidStateType,"None")))
 
 local allowshiftlock=nil
 local allowfreecam=nil
@@ -395,7 +406,7 @@ local applysettings=@native function(t)
 	end
 	if t.discharscripts~=nil then
 		discharscripts=function(v)
-			if IsA(v,"LocalScript") or (IsA(v,"Script") and insGet(v,"RunContext")==e.RunContext.Client) then
+			if IsA(v,"LocalScript") or (IsA(v,"Script") and insGet(v,"RunContext")==etGet(eGet(e,"RunContext"),"Client")) then
 				insSet(v,"Disabled",true)
 			end
 		end
@@ -520,7 +531,6 @@ local reanimate=function()
 	local camoff=cf_0
 	local camcf=insGet(cam,"CFrame")
 	local scriptablecamcf=nil
-	local enumCamS=e.CameraType.Scriptable
 	local camt=insGet(cam,"CameraType")
 	local camcon0=nil
 	local camcon1=nil
@@ -886,7 +896,7 @@ local reanimate=function()
 	end
 
 	local raycastparams=rp()
-	raycastparams.FilterType=e.RaycastFilterType.Exclude
+	raycastparams.FilterType=enumRFTExclude
 	raycastparams.RespectCanCollide=true
 	local rayexclusions={}
 	local rayfilter={}
@@ -1121,7 +1131,6 @@ local reanimate=function()
 	end
 
 	local simradv=1000
-	local enumH=e.CoreGuiType.Health
 	local refreshf=nil
 	local onplayer=function(v)
 		simradv+=1000
@@ -1536,13 +1545,12 @@ local reanimate=function()
 	local mradN05=-0.008726646259971648
 	local pi2=3.141592653589793/2-0.0001
 	local npi2=-pi2
-	local KeyCode=e.KeyCode
-	local enumYXZ=e.RotationOrder.YXZ
-	local enumMB2=e.UserInputType.MouseButton2
-	local enumMLCP=e.MouseBehavior.LockCurrentPosition
-	local enumMLC=(insGet(uis,"TouchEnabled") and enumMLCP) or e.MouseBehavior.LockCenter 
-	local enumMW=e.UserInputType.MouseWheel
-	local enumMM=e.UserInputType.MouseMovement
+	local enumYXZ=etGet(rotationOrder,"YXZ")
+	local enumMB2=etGet(userInputType,"MouseButton2")
+	local enumMLCP=etGet(mouseBehaviorType,"LockCurrentPosition")
+	local enumMLC=(insGet(uis,"TouchEnabled") and enumMLCP) or etGet(mouseBehaviorType,"LockCenter") 
+	local enumMW=etGet(userInputType,"MouseWheel")
+	local enumMM=etGet(userInputType,"MouseMovement")
 
 	local mouseBehavior=insGet(uis,"MouseBehavior")
 	tinsert(cleantable,Connect(GetPropertyChangedSignal(uis,"MouseBehavior"),function()
@@ -1585,22 +1593,22 @@ local reanimate=function()
 		end
 	end
 
-	local keyW=KeyCode.W
+	local keyW=etGet(keyCode,"W")
 	local Wpressed=IsKeyDown(uis,keyW)
-	local keyA=KeyCode.A
+	local keyA=etGet(keyCode,"A")
 	local Apressed=IsKeyDown(uis,keyA)
-	local keyS=KeyCode.S
+	local keyS=etGet(keyCode,"S")
 	local Spressed=IsKeyDown(uis,keyS)
-	local keyD=KeyCode.D
+	local keyD=etGet(keyCode,"D")
 	local Dpressed=IsKeyDown(uis,keyD)
-	local keySpace=KeyCode.Space
+	local keySpace=etGet(keyCode,"Space")
 	local jumpingInput=IsKeyDown(uis,keySpace)
 	
-	local keyP=KeyCode.P
-	local keyLeftControl=KeyCode.LeftControl
-	local keyRightControl=KeyCode.RightControl
-	local keyLeftShift=KeyCode.LeftShift
-	local keyRightShift=KeyCode.RightShift
+	local keyP=etGet(keyCode,"P")
+	local keyLeftControl=etGet(keyCode,"LeftControl")
+	local keyRightControl=etGet(keyCode,"RightControl")
+	local keyLeftShift=etGet(keyCode,"LeftShift")
+	local keyRightShift=etGet(keyCode,"RightShift")
 
 	local FWmovement=0
 	local RTmovement=0
