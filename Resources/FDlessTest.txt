@@ -857,17 +857,20 @@ local reanimate=function()
 	refreshjointsI=@native function(part)
 		refreshedjoints[part]=true
 		for i,v in next,joints do
-			local part0=v.Part0
-			local part1=v.Part1
-			if part1 and (part0==part) then
-				cframes[part1]=cfMul(cframes[part],cfMul(v.C0,Inverse(v.C1)))
-				if not refreshedjoints[part1] then
-					refreshjointsI(part1)
-				end
-			elseif part0 and (part1==part) then
-				cframes[part0]=cfMul(cframes[part],cfMul(v.C1,Inverse(v.C0)))
-				if not refreshedjoints[part0] then
-					refreshjointsI(part0)
+			local enabled=v.Enabled
+			if enabled==nil or enabled then
+				local part0=v.Part0
+				local part1=v.Part1
+				if part1 and (part0==part) then
+					cframes[part1]=cfMul(cframes[part],cfMul(v.C0,Inverse(v.C1)))
+					if not refreshedjoints[part1] then
+						refreshjointsI(part1)
+					end
+				elseif part0 and (part1==part) then
+					cframes[part0]=cfMul(cframes[part],cfMul(v.C1,Inverse(v.C0)))
+					if not refreshedjoints[part0] then
+						refreshjointsI(part0)
+					end
 				end
 			end
 		end
@@ -2840,6 +2843,9 @@ local reanimate=function()
 	local getDirs=@native function() --returns character move directions
 		return isWalking and vnormalize(vnormalize(camcfLV*v3_101)*FWmovement+v3Get(camcfRV*v3_101,"Unit")*RTmovement) or v3_0
 	end
+	local getVertDir=@native function() --returns character jump/fall direction
+		return clamp(Yvel/jumpPower,-1,1)
+	end
 	local getFloorDistance=function() --returns raycast's floor distance
 		return raycastdistance
 	end
@@ -2880,6 +2886,9 @@ local reanimate=function()
 			end
 		end
 		return false
+	end
+	local getCam=function() --need to explain?
+		return cam
 	end
 	local setCameraMoveable=function(v) --make camera movement to true or false
 		cameraMoveable=v
@@ -2934,7 +2943,9 @@ local reanimate=function()
 		getHipHeight=getHipHeight,
 		getVel=getVel,
 		getDirs=getDirs,
+		getVertDir=getVertDir,
 		getFloorDistance=getFloorDistance,
+		getCam=getCam,
 		getCamCF=getCamCF,
 		setCamScriptableCF=setCamScriptableCF,
 		isFirstPerson=isFirstPerson,
