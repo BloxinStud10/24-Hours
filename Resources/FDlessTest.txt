@@ -794,6 +794,7 @@ local reanimate=function()
 			C1=cf(-0.5,1,0,0,0,-1,0,1,0,1,0,0)
 		}
 	}
+	local lastjointsc=#joints
 	
 	local RCDparts={}
 	if isRCD then
@@ -852,31 +853,69 @@ local reanimate=function()
 		end
 	end
 
+	local jointsbypart={}
+	local refreshjointsm=@native function()
+		tclear(jointsbypart)
+		for i,v in next,joints do
+			local part0=v.Part0
+			local part1=v.Part1
+			if part0 then
+				local list=jointsbypart[part0]
+				if not list then
+					list={}
+					jointsbypart[part0]=list
+				end
+				list[#list+1]=v
+			end
+			if part1 and part1~=part0 then
+				local list=jointsbypart[part1]
+				if not list then
+					list={}
+					jointsbypart[part1]=list
+				end
+				list[#list+1]=v
+			end
+		end
+	end
+
 	local refreshedjoints={}
 	local refreshjointsI=nil
 	refreshjointsI=@native function(part)
-		refreshedjoints[part]=true
-		for i,v in next,joints do
+		refreshedjoints[part]=sine
+		local list=jointsbypart[part]
+		if not list then
+			return
+		end
+		for i,v in next,list do
 			local enabled=v.Enabled
 			if enabled==nil or enabled then
 				local part0=v.Part0
 				local part1=v.Part1
+				local transform=v.Transform
 				if part1 and (part0==part) then
-					cframes[part1]=cfMul(cframes[part],cfMul(v.C0,Inverse(v.C1)))
-					if not refreshedjoints[part1] then
+					if refreshedjoints[part1]~=sine then
+						if transform then
+							cframes[part1]=cfMul(cframes[part],cfMul(v.C0,cfMul(transform,Inverse(v.C1))))
+						else
+							cframes[part1]=cfMul(cframes[part],cfMul(v.C0,Inverse(v.C1)))
+						end
 						refreshjointsI(part1)
 					end
 				elseif part0 and (part1==part) then
-					cframes[part0]=cfMul(cframes[part],cfMul(v.C1,Inverse(v.C0)))
-					if not refreshedjoints[part0] then
+					if refreshedjoints[part0]~=sine then
+						if transform then
+							cframes[part0]=cfMul(cframes[part],cfMul(v.C1,cfMul(Inverse(transform),Inverse(v.C0))))
+						else
+							cframes[part0]=cfMul(cframes[part],cfMul(v.C1,Inverse(v.C0)))
+						end
 						refreshjointsI(part0)
 					end
 				end
 			end
 		end
 	end
+	refreshjointsm()
 	refreshjointsI(rootpart)
-	tclear(refreshedjoints)
 
 	local attachments={
 		RightShoulderAttachment={R6parts.rightArm,cf(0,1,0,1,0,0,0,1,0,0,0,1)},
@@ -2502,9 +2541,13 @@ local reanimate=function()
 				end
 			end
 		end
-
+		
+		local currentjointsc=#joints
+		if currentjointsc~=lastjointsc then
+			lastjointsc=currentjointsc
+			refreshjointsm()
+		end
 		refreshjointsI(rootpart)
-		tclear(refreshedjoints)
 
 		local sine15=sine*15
 		local idlerv=v3(sin(sine15),sin(sine15+1.0471975511965976),sin(sine15+2.0943951023931953))
@@ -2673,6 +2716,11 @@ local reanimate=function()
 	local refreshjoints=@native function(v) --use this on the main part if u have parts that
 		refreshjointsI(v) --are connected with each other but arent connected to rootpart
 		tclear(refreshedjoints)
+	end
+	
+	local refreshjointsmap=@native function(v) --use this to refresh joints map (since we did a lil optimization on that)
+		lastjointsc=#joints
+		refreshjointsm()
 	end
 
 	local legcfR=cf(1,-1,0)
@@ -2913,6 +2961,7 @@ local reanimate=function()
 		fling=predictionfling,
 		predictionfling=predictionfling,
 		refreshjoints=refreshjoints,
+		refreshjointsmap=refreshjointsmap,
 		raycastlegs=raycastlegs,
 		velbycfrvec=velbycfrvec,
 		velchgbycfrvec=velchgbycfrvec,
