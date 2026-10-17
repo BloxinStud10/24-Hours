@@ -48,6 +48,7 @@ local cloneref=cloneref or function(...) return ... end
 
 local i=Instance.new
 local ife=Instance.fromExisting
+local ih=InstanceHandle.new
 local u2=UDim2.new
 local v2=Vector2.new
 local v3=vector.create
@@ -1194,10 +1195,10 @@ local reanimate=function()
 						if isPhysicsRepFling and (firsttarget and firsttarget.p) then
 							local p=firsttarget.p
 							if sethiddenproperty then
-								sethiddenproperty(hrp,"PhysicsRepRootPart",p)
+								sethiddenproperty(hrp,"PhysicsRepRootRef",ih(p))
 							elseif setscriptable then
-								setscriptable(hrp,"PhysicsRepRootPart",true)
-								insSet(hrp,"PhysicsRepRootPart",p)
+								setscriptable(hrp,"PhysicsRepRootRef",true)
+								insSet(hrp,"PhysicsRepRootRef",ih(p))
 							elseif c then
 								local hrpcpp=insGet(hrp,"CustomPhysicalProperties")
 								local tparent=insGet(p,"Parent")
@@ -1270,10 +1271,10 @@ local reanimate=function()
 								end
 								if isPhysicsRepFling then
 									if sethiddenproperty then
-										sethiddenproperty(hrp,"PhysicsRepRootPart",i0)
+										sethiddenproperty(hrp,"PhysicsRepRootRef",ih(i0))
 									elseif setscriptable then
-										setscriptable(hrp,"PhysicsRepRootPart",true)
-										insSet(hrp,"PhysicsRepRootPart",i0)
+										setscriptable(hrp,"PhysicsRepRootRef",true)
+										insSet(hrp,"PhysicsRepRootRef",ih(i0))
 									else
 										local hrpcpp=insGet(hrp,"CustomPhysicalProperties")
 										local tparent=insGet(i0,"Parent")
@@ -1357,10 +1358,10 @@ local reanimate=function()
 							end
 							if isPhysicsRepFling then
 								if sethiddenproperty then
-									sethiddenproperty(hrp,"PhysicsRepRootPart",nil)
+									sethiddenproperty(hrp,"PhysicsRepRootRef",ih(nil))
 								elseif setscriptable then
-									setscriptable(hrp,"PhysicsRepRootPart",true)
-									insSet(hrp,"PhysicsRepRootPart",nil)
+									setscriptable(hrp,"PhysicsRepRootRef",true)
+									insSet(hrp,"PhysicsRepRootRef",ih(nil))
 								else
 									SetStateEnabled(hum,enumrunning,true)
 									ChangeState(hum,enumrunning)
@@ -1919,10 +1920,10 @@ local reanimate=function()
 			end
 			if root and p and isPhysicsRepFling then
 				if sethiddenproperty then
-					sethiddenproperty(root,"PhysicsRepRootPart",p)
+					sethiddenproperty(root,"PhysicsRepRootRef",ih(p))
 				elseif setscriptable then
-					setscriptable(root,"PhysicsRepRootPart",true)
-					insSet(root,"PhysicsRepRootPart",p)
+					setscriptable(root,"PhysicsRepRootRef",true)
+					insSet(root,"PhysicsRepRootRef",ih(p))
 				elseif c then
 					local hrpcpp=insGet(root,"CustomPhysicalProperties")
 					local tparent=insGet(p,"Parent")
