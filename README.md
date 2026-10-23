@@ -14,7 +14,7 @@ without explicit permission from the author.
 
 ## Credits
 ### 24-HOURS Team
-#### White Hat [Founder]
+#### [White Hat](https://github.com/FDless) [Founder]
     Started 24-HOURS Project and helping with the project
     
 #### [Epicatos](https://github.com/BloxinStud10) [CO-Founder & Publisher]
