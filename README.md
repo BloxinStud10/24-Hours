@@ -14,10 +14,10 @@ without explicit permission from the author.
 
 ## Credits
 ### 24-HOURS Team
-#### White Hat [Owner]
+#### White Hat [Founder]
     Started 24-HOURS Project and helping with the project
     
-#### [Epicatos](https://github.com/BloxinStud10) [CO-Owner & Publisher]
+#### [Epicatos](https://github.com/BloxinStud10) [CO-Founder & Publisher]
     A decent scripter but also a lazy ass [also that's me]
 
 ### Honourable mentions
