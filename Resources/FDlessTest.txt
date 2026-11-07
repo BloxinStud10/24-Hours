@@ -24,6 +24,7 @@ local abs=math.abs
 local min=math.min
 local clamp=math.clamp
 local sqrt=math.sqrt
+local exp=math.exp
 local tinsert=table.insert
 local tremove=table.remove
 local tclear=table.clear
@@ -42,6 +43,7 @@ local type=type
 local typeof=typeof
 local game=game
 local sethiddenproperty=sethiddenproperty or set_hidden_property or set_hidden_prop or sethiddenprop
+local isscriptable=isscriptable
 local setscriptable=setscriptable
 local replicatesignal=replicatesignal
 local cloneref=cloneref or function(...) return ... end
@@ -69,6 +71,7 @@ local cf_0=cf()
 local v3_xz=v3_101*10
 local v3_xzL=v3_101*250.1
 local v3_net=v3_010*25.01
+local nilhref=ih(nil)
 
 --not "local function rs" to not assign debug names
 --table.concat is much faster than string interpolation
@@ -1334,7 +1337,7 @@ local reanimate=function()
 					if discharscripts then
 						pcall(Disconnect,cleantable.discharscripts)
 						cleantable.discharscripts=Connect(insGet(newc,"DescendantAdded"),discharscripts)
-						for i,v in next,QueryDescendants(newc,"LocalScript,Script[RunContext=Client]") do
+						for i,v in next,QueryDescendants(newc,"LocalScript[Disabled=false],Script[RunContext=Client][Disabled=false]") do
 							insSet(v,"Disabled",true)
 						end
 					end
@@ -1368,7 +1371,9 @@ local reanimate=function()
 							if sethiddenproperty then
 								sethiddenproperty(hrp,"PhysicsRepRootRef",ih(p))
 							elseif setscriptable then
-								setscriptable(hrp,"PhysicsRepRootRef",true)
+								if not (isscriptable and isscriptable(hrp,"PhysicsRepRootRef")) then
+									setscriptable(hrp,"PhysicsRepRootRef",true)
+								end
 								insSet(hrp,"PhysicsRepRootRef",ih(p))
 							elseif c then
 								local hrpcpp=insGet(hrp,"CustomPhysicalProperties")
@@ -1444,7 +1449,9 @@ local reanimate=function()
 									if sethiddenproperty then
 										sethiddenproperty(hrp,"PhysicsRepRootRef",ih(i0))
 									elseif setscriptable then
-										setscriptable(hrp,"PhysicsRepRootRef",true)
+										if not (isscriptable and isscriptable(hrp,"PhysicsRepRootRef")) then
+											setscriptable(hrp,"PhysicsRepRootRef",true)
+										end
 										insSet(hrp,"PhysicsRepRootRef",ih(i0))
 									else
 										local hrpcpp=insGet(hrp,"CustomPhysicalProperties")
@@ -1529,10 +1536,12 @@ local reanimate=function()
 							end
 							if isPhysicsRepFling then
 								if sethiddenproperty then
-									sethiddenproperty(hrp,"PhysicsRepRootRef",ih(nil))
+									sethiddenproperty(hrp,"PhysicsRepRootRef",nilhref)
 								elseif setscriptable then
-									setscriptable(hrp,"PhysicsRepRootRef",true)
-									insSet(hrp,"PhysicsRepRootRef",ih(nil))
+									if not (isscriptable and isscriptable(hrp,"PhysicsRepRootRef")) then
+										setscriptable(hrp,"PhysicsRepRootRef",true)
+									end
+									insSet(hrp,"PhysicsRepRootRef",nilhref)
 								else
 									SetStateEnabled(hum,enumrunning,true)
 									ChangeState(hum,enumrunning)
@@ -2020,7 +2029,7 @@ local reanimate=function()
 		end
 	end))
 	
-	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d) --"every updates you guys made are from me" yeah sure bud, yours didnt even have this lmao, now copy and paste this to your update to prove my point
+	tinsert(cleantable,Connect(insGet(uis,"PointerAction"),function(a,b,c,d)
 		if d or typeof(scriptablecamcf)=="CFrame" then return end
 		if mouseCameraMove and v2Get(b,"Magnitude")>0 then
 			camrotX=clamp(v2Get(b,"Y")*mradN05+camrotX,npi2,pi2)
@@ -2096,7 +2105,9 @@ local reanimate=function()
 				if sethiddenproperty then
 					sethiddenproperty(root,"PhysicsRepRootRef",ih(p))
 				elseif setscriptable then
-					setscriptable(root,"PhysicsRepRootRef",true)
+					if not (isscriptable and isscriptable(root,"PhysicsRepRootRef")) then
+						setscriptable(root,"PhysicsRepRootRef",true)
+					end
 					insSet(root,"PhysicsRepRootRef",ih(p))
 				elseif c then
 					local hrpcpp=insGet(root,"CustomPhysicalProperties")
@@ -2189,6 +2200,9 @@ local reanimate=function()
 	end
 
 	local noYvelTime=1
+	local fVel=v3_0
+	local friction=3
+	local launchY=nil
 	local lastsine=sine
 	local onground=nil
 	local raycastdistance=hhOff
@@ -2253,6 +2267,15 @@ local reanimate=function()
 			Yvel=0
 			raycastdistance=hhOff1
 			onground=false
+		end
+		
+		if fVel~=v3_0 then
+			if noVelMode then
+				fVel=0
+			else
+				pos+=fVel*delta
+				fVel=vmagnitude(fVel)<0.5 and v3_0 or fVel*exp(-friction*delta)
+			end
 		end
 		
 		if freecam then
@@ -2778,9 +2801,8 @@ local reanimate=function()
 	end
 	
 	local rotToPos=@native function(v,alpha) --this rotates ur character towards specific position
-		local pos1=pos*v3_010+v*v3_101
-		if pos~=pos1 then --could make nan rotation
-			cfr=Lerp(cfr,cfl(pos,pos1),alpha or deltaTime)
+		if pos~=v then --could make nan rotation
+			cfr=Lerp(cfr,cfl(pos,v),alpha or deltaTime)
 		end
 	end
 
@@ -2873,6 +2895,16 @@ local reanimate=function()
 			xzvel=v3_0
 			Yvel=0
 		end
+	end
+	local setVel=@native function(v)
+		fVel+=v*v3_101
+		local y=v3Get(v,"Y")
+		if y~=0 then
+			launchY=(launchY or 0)+y
+		end
+	end
+	local setFriction=@native function(v)
+		friction=type(v)=="number" and v or 3
 	end
 	local getWalkSpeed=function()
 		return walkSpeed
@@ -2988,6 +3020,8 @@ local reanimate=function()
 		setfreecam=setfreecam,
 		setCameraMoveable=setCameraMoveable,
 		setNoVelocity=setNoVelocity,
+		setVel=setVel,
+		setFriction=setFriction,
 		getWalkSpeed=getWalkSpeed,
 		getJumpPower=getJumpPower,
 		getHipHeight=getHipHeight,
