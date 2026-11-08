@@ -123,6 +123,7 @@ local GetPropertyChangedSignal=insGet(game,"GetPropertyChangedSignal")
 local plrs=cloneref(FindFirstChildOfClass(game,"Players"))
 local rus=cloneref(FindFirstChildOfClass(game,"RunService"))
 local ws=cloneref(FindFirstChildOfClass(game,"Workspace"))
+local cs=cloneref(FindFirstChildOfClass(game,"CollectionService"))
 local uis=cloneref(FindFirstChildOfClass(game,"UserInputService"))
 local gs=cloneref(FindFirstChildOfClass(game,"GuiService"))
 local sg=cloneref(FindFirstChildOfClass(game,"StarterGui"))
@@ -136,17 +137,6 @@ local heartbeat=insGet(rus,"Heartbeat")
 local renderstepped=insGet(rus,"RenderStepped")
 local stepped=insGet(rus,"Stepped")
 
-local BreakJoints
-local ChangeState
-local SetStateEnabled
-do
-	local model,hum=i("Model"),i("Humanoid")
-	BreakJoints=insGet(model,"BreakJoints")
-	ChangeState=insGet(hum,"ChangeState")
-	SetStateEnabled=insGet(hum,"SetStateEnabled")
-	Destroy(model)
-	Destroy(hum)
-end
 local BulkMoveTo=insGet(ws,"BulkMoveTo")
 local IsGrounded=insGet(terrain,"IsGrounded")
 local GetJoints=insGet(terrain,"GetJoints")
@@ -154,6 +144,7 @@ local GetPlayers=insGet(plrs,"GetPlayers")
 local SetCoreGuiEnabled=insGet(sg,"SetCoreGuiEnabled")
 local GetCoreGuiEnabled=insGet(sg,"GetCoreGuiEnabled")
 local Raycast=insGet(ws,"Raycast")
+local CreateCollection=insGet(cs,"CreateCollection")
 local Connect=heartbeat.Connect
 local Disconnect=Connect(GetPropertyChangedSignal(game,"CreatorId"),type).Disconnect
 local Wait=heartbeat.Wait
@@ -162,6 +153,18 @@ local GetFocusedTextBox=insGet(uis,"GetFocusedTextBox")
 local GetMouseDelta=insGet(uis,"GetMouseDelta")
 local IsMouseButtonPressed=insGet(uis,"IsMouseButtonPressed")
 local IsKeyDown=insGet(uis,"IsKeyDown")
+local BreakJoints,ChangeState,SetStateEnabled,CollectionDestroy,CollectionForEach
+do
+	local model,hum,collection=i("Model"),i("Humanoid"),CreateCollection(cs,">[CreatorId=0]")
+	BreakJoints=insGet(model,"BreakJoints")
+	ChangeState=insGet(hum,"ChangeState")
+	SetStateEnabled=insGet(hum,"SetStateEnabled")
+	CollectionDestroy=collection.Destroy
+	CollectionForEach=collection.ForEach
+	Destroy(model)
+	Destroy(hum)
+	CollectionDestroy(collection)
+end
 
 local Inverse=cfGet(cf_0,"Inverse")
 local Lerp=cfGet(cf_0,"Lerp")
@@ -548,9 +551,7 @@ local applysettings=@native function(t)
 	end
 	if t.discharscripts~=nil then
 		discharscripts=function(v)
-			if IsA(v,"LocalScript") or (IsA(v,"Script") and insGet(v,"RunContext")==etGet(eGet(e,"RunContext"),"Client")) then
-				insSet(v,"Disabled",true)
-			end
+			insSet(v,"Disabled",true)
 		end
 	else
 		discharscripts=nil
@@ -568,7 +569,6 @@ local currenttable=nil
 local onstopfunc=nil
 local c=nil
 local cframes={}
-local lpcon=nil
 local charcons={}
 local flingtable={}
 local flingtable1={}
@@ -585,10 +585,6 @@ end
 local stopreanimate=@native function() 
 	if c then
 		c=nil
-		if lpcon then
-			Disconnect(lpcon)
-			lpcon=nil
-		end
 		for i,v in next,cframes do
 			local p=i.v
 			if p then
@@ -607,12 +603,17 @@ local stopreanimate=@native function()
 			local type=typeof(v)
 			if type=="Instance" then
 				Destroy(v)
-			else
-				if type=="RBXScriptConnection" then
-					Disconnect(v)
-				elseif (type=="table" and v.Disconnect) then
+			elseif type=="Collection" then
+				CollectionDestroy(v)
+			elseif type=="RBXScriptConnection" then
+				Disconnect(v)
+			elseif type=="table" then
+				if v.Disconnect then
 					v:Disconnect()
+				elseif v.Destroy then
+					v:Destroy()
 				end
+				tclear(v)
 			end
 		end
 		tclear(cleantable)
@@ -1134,182 +1135,178 @@ local reanimate=function()
 		end)
 	end
 	local ondes=function(v)
-		if c and IsA(v,"Attachment") and IsDescendantOf(c,ws) then
-			local v1=attachments[insGet(v,"Name")]
-			if v1 then
-				local p=insGet(v,"Parent")
-				if insGet(p,"Parent")~=c then
-					local meshid=nil
-					local textureid=nil
-					if IsA(p,"MeshPart") then
-						meshid=insGet(p,"MeshId")
-						textureid=insGet(p,"TextureID")
-					elseif IsA(p,"BasePart") then
-						local sm=FindFirstChildOfClass(p,"SpecialMesh")
-						if sm then
-							meshid=insGet(sm,"MeshId")
-							textureid=insGet(sm,"TextureId")
-						else
-							return
-						end
+		local v1=attachments[insGet(v,"Name")]
+		if v1 then
+			local p=insGet(v,"Parent")
+			if insGet(p,"Parent")~=c then
+				local meshid=nil
+				local textureid=nil
+				if IsA(p,"MeshPart") then
+					meshid=insGet(p,"MeshId")
+					textureid=insGet(p,"TextureID")
+				elseif IsA(p,"BasePart") then
+					local sm=FindFirstChildOfClass(p,"SpecialMesh")
+					if sm then
+						meshid=insGet(sm,"MeshId")
+						textureid=insGet(sm,"TextureId")
 					else
 						return
 					end
-					for i,_ in next,cframes do
-						if (meshid==i.m) and (textureid==i.t) then
-							local p1=i.p
-							if p1 and IsDescendantOf(p1,c) then
-								if p1==p then
-									return
-								end
-							else
-								i.p=p
-								makePartCons(p,i)
+				else
+					return
+				end
+				for i,_ in next,cframes do
+					if (meshid==i.m) and (textureid==i.t) then
+						local p1=i.p
+						if p1 and IsDescendantOf(p1,c) then
+							if p1==p then
 								return
 							end
 						else
-							local j=i.j
-							if j and sfind(meshid,i.m) and sfind(textureid,i.t) then
-								i.m=meshid
-								i.t=textureid
-								i.l=insGet(p,"Position")
-								i.p=p
-								makePartCons(p,i)
-								i.j=nil
-								i.Name=insGet(p,"Name")
-								j.C0=insGet(v,"CFrame")
-								j.C1=v1[2]
-								j.Part1=v1[1]
-								tinsert(joints,j)
-								return
-							end
+							i.p=p
+							makePartCons(p,i)
+							return
 						end
-					end
-					for i,l in next,accessorylimbs do
-						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
-							local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
-							makePartCons(p,t)
-							if placeholders then
-								t.v=makeplaceholder(p)
-								t.b=false
-							end
-							cframes[t]=insGet(p,"CFrame")
-							tinsert(joints,{Part0=t,Part1=l.p,C0=l.C0,C1=cf_0})
-							l.p=nil
+					else
+						local j=i.j
+						if j and sfind(meshid,i.m) and sfind(textureid,i.t) then
+							i.m=meshid
+							i.t=textureid
+							i.l=insGet(p,"Position")
+							i.p=p
+							makePartCons(p,i)
+							i.j=nil
+							i.Name=insGet(p,"Name")
+							j.C0=insGet(v,"CFrame")
+							j.C1=v1[2]
+							j.Part1=v1[1]
+							tinsert(joints,j)
 							return
 						end
 					end
-					local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
-					makePartCons(p,t)
-					if placeholders then
-						t.v=makeplaceholder(p)
-						t.b=false
-					end
-					cframes[t]=insGet(p,"CFrame")
-					tinsert(joints,{Part0=t,Part1=v1[1],C0=insGet(v,"CFrame"),C1=v1[2]})
 				end
+				for i,l in next,accessorylimbs do
+					if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
+						local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
+						makePartCons(p,t)
+						if placeholders then
+							t.v=makeplaceholder(p)
+							t.b=false
+						end
+						cframes[t]=insGet(p,"CFrame")
+						tinsert(joints,{Part0=t,Part1=l.p,C0=l.C0,C1=cf_0})
+						l.p=nil
+						return
+					end
+				end
+				local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
+				makePartCons(p,t)
+				if placeholders then
+					t.v=makeplaceholder(p)
+					t.b=false
+				end
+				cframes[t]=insGet(p,"CFrame")
+				tinsert(joints,{Part0=t,Part1=v1[1],C0=insGet(v,"CFrame"),C1=v1[2]})
 			end
 		end
 	end
 	local ondes1=function(v)
-		if c and IsA(v,"Attachment") and IsDescendantOf(c,ws) then
-			local p=insGet(v,"Parent")
-			
-			local i=RCDparts[insGet(p,"Name")]
-			if i then
-				local pt=i.p
-				if pt and IsDescendantOf(pt,c) then
-					if pt==p then
-						return
-					end
+		local p=insGet(v,"Parent")
+		
+		local i=RCDparts[insGet(p,"Name")]
+		if i then
+			local pt=i.p
+			if pt and IsDescendantOf(pt,c) then
+				if pt==p then
+					return
 				end
-				
-				i.p=p
-				i.l=insGet(p,"Position")
-				makePartCons(p,i)
-				for i,v in next,GetJoints(p) do
-					Destroy(v)
-				end
-				if placeholders and not i.v then
-					i.v=makeplaceholder(p)
-					i.b=false
-				end
-				cframes[i]=insGet(p,"CFrame")
-				return
 			end
 			
-			local v1=attachments[insGet(v,"Name")]
-			if v1 then
-				if insGet(p,"Parent")~=c then
-					local meshid=nil
-					local textureid=nil
-					if IsA(p,"MeshPart") then
-						meshid=insGet(p,"MeshId")
-						textureid=insGet(p,"TextureID")
-					elseif IsA(p,"BasePart") then
-						local sm=FindFirstChildOfClass(p,"SpecialMesh")
-						if sm then
-							meshid=insGet(sm,"MeshId")
-							textureid=insGet(sm,"TextureId")
-						else
-							return
-						end
+			i.p=p
+			i.l=insGet(p,"Position")
+			makePartCons(p,i)
+			for i,v in next,GetJoints(p) do
+				Destroy(v)
+			end
+			if placeholders and not i.v then
+				i.v=makeplaceholder(p)
+				i.b=false
+			end
+			cframes[i]=insGet(p,"CFrame")
+			return
+		end
+		
+		local v1=attachments[insGet(v,"Name")]
+		if v1 then
+			if insGet(p,"Parent")~=c then
+				local meshid=nil
+				local textureid=nil
+				if IsA(p,"MeshPart") then
+					meshid=insGet(p,"MeshId")
+					textureid=insGet(p,"TextureID")
+				elseif IsA(p,"BasePart") then
+					local sm=FindFirstChildOfClass(p,"SpecialMesh")
+					if sm then
+						meshid=insGet(sm,"MeshId")
+						textureid=insGet(sm,"TextureId")
 					else
 						return
 					end
-					for i,_ in next,cframes do
-						if (meshid==i.m) and (textureid==i.t) then
-							local p1=i.p
-							if p1 and IsDescendantOf(p1,c) then
-								if p1==p then
-									return
-								end
-							else
-								i.p=p
-								makePartCons(p,i)
+				else
+					return
+				end
+				for i,_ in next,cframes do
+					if (meshid==i.m) and (textureid==i.t) then
+						local p1=i.p
+						if p1 and IsDescendantOf(p1,c) then
+							if p1==p then
 								return
 							end
 						else
-							local j=i.j
-							if j and sfind(meshid,i.m) and sfind(textureid,i.t) then
-								i.m=meshid
-								i.t=textureid
-								i.l=insGet(p,"Position")
-								i.p=p
-								makePartCons(p,i)
-								i.j=nil
-								i.Name=insGet(p,"Name")
-								j.C0=insGet(v,"CFrame")
-								j.C1=v1[2]
-								j.Part1=v1[1]
-								tinsert(joints,j)
-								return
-							end
+							i.p=p
+							makePartCons(p,i)
+							return
 						end
-					end
-					for i,l in next,accessorylimbs do
-						if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
-							local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
-							makePartCons(p,t)
-							if placeholders then
-								t.v=makeplaceholder(p)
-								t.b=false
-							end
-							cframes[t]=insGet(p,"CFrame")
-							tinsert(joints,{Part0=t,Part1=l.p,C0=l.C0,C1=cf_0})
-							l.p=nil
+					else
+						local j=i.j
+						if j and sfind(meshid,i.m) and sfind(textureid,i.t) then
+							i.m=meshid
+							i.t=textureid
+							i.l=insGet(p,"Position")
+							i.p=p
+							makePartCons(p,i)
+							i.j=nil
+							i.Name=insGet(p,"Name")
+							j.C0=insGet(v,"CFrame")
+							j.C1=v1[2]
+							j.Part1=v1[1]
+							tinsert(joints,j)
 							return
 						end
 					end
-					local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
-					makePartCons(p,t)
-					if placeholders then
-						t.v=makeplaceholder(p)
-						t.b=false
-					end
-					cframes[t]=insGet(p,"CFrame")
-					tinsert(joints,{Part0=t,Part1=v1[1],C0=insGet(v,"CFrame"),C1=v1[2]})
 				end
+				for i,l in next,accessorylimbs do
+					if l.p and sfind(meshid,l.meshid) and sfind(textureid,l.textureid) then
+						local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
+						makePartCons(p,t)
+						if placeholders then
+							t.v=makeplaceholder(p)
+							t.b=false
+						end
+						cframes[t]=insGet(p,"CFrame")
+						tinsert(joints,{Part0=t,Part1=l.p,C0=l.C0,C1=cf_0})
+						l.p=nil
+						return
+					end
+				end
+				local t={Name=insGet(p,"Name"),l=insGet(p,"Position"),m=meshid,t=textureid,p=p}
+				makePartCons(p,t)
+				if placeholders then
+					t.v=makeplaceholder(p)
+					t.b=false
+				end
+				cframes[t]=insGet(p,"CFrame")
+				tinsert(joints,{Part0=t,Part1=v1[1],C0=insGet(v,"CFrame"),C1=v1[2]})
 			end
 		end
 	end
@@ -1322,37 +1319,30 @@ local reanimate=function()
 		local lastc=nil
 		if islp then
 			local hrp=nil
-			local childadded=function(i)
-				if IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart" then
-					hrp=i
-					rootparts[v]=hrp
-					if lpcon then
-						Disconnect(lpcon)
-						lpcon=nil
-					end
-				end
+			local hrpCollection=nil
+			local onadded=function(i)
+				hrp=i
+				rootparts[v]=hrp
+				CollectionDestroy(hrpCollection)
+				hrpCollection=nil
 			end
 			local oncharacter=function()
 				local newc=insGet(v,"Character")
 				if newc and (newc~=lastc) then
 					lastc=newc
-					pcall(Disconnect,cleantable.ondes)
-					if lpcon then
-						Disconnect(lpcon)
-						lpcon=nil
-					end
+					pcall(CollectionDestroy,cleantable.onadded)
 					characters[v]=newc
 					refreshrayfilter()
 					if discharscripts then
-						pcall(Disconnect,cleantable.discharscripts)
-						cleantable.discharscripts=Connect(insGet(newc,"DescendantAdded"),discharscripts)
-						for i,v in next,QueryDescendants(newc,"LocalScript[Disabled=false],Script[RunContext=Client][Disabled=false]") do
-							insSet(v,"Disabled",true)
-						end
+						pcall(CollectionDestroy,cleantable.discharscripts)
+						local discharscriptsCollection=CreateCollection(cs,"LocalScript[Disabled=false],Script[RunContext=Client][Disabled=false]",newc)
+						discharscriptsCollection.OnAdded=discharscripts
+						cleantable.discharscripts=discharscriptsCollection
 					end
-					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1]
+					hrpCollection=CreateCollection(cs,">BasePart#HumanoidRootPart",newc)
+					hrpCollection.OnAdded=onadded
+					cleantable.lpcollection=hrpCollection
 					if not hrp then
-						lpcon=Connect(insGet(newc,"ChildAdded"),childadded)
 						repeat
 							twait()
 							if (newc~=lastc) then
@@ -1652,17 +1642,10 @@ local reanimate=function()
 					else
 						BreakJoints(newc)
 					end
-					if isRCD then
-						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes1)
-						for i,v in next,QueryDescendants(newc,"Attachment") do
-							ondes1(v)
-						end
-					else
-						cleantable.ondes=Connect(insGet(newc,"DescendantAdded"),ondes)
-						for i,v in next,QueryDescendants(newc,"Attachment") do
-							ondes(v)
-						end
-					end
+					local collection=CreateCollection(cs,"BasePart>Attachment",newc)
+					CollectionForEach(collection,isRCD and ondes1 or ondes)
+					collection.OnAdded=isRCD and ondes1 or ondes
+					cleantable.onadded=collection
 				end
 			end
 			tinsert(cleantable,Connect(GetPropertyChangedSignal(v,"Character"),oncharacter))
@@ -1671,15 +1654,16 @@ local reanimate=function()
 			local con0=nil
 			local newc=nil
 			local hrp=nil
-			local childadded=function(i)
-				if newc and (IsA(i,"BasePart") and insGet(i,"Name")=="HumanoidRootPart") then
-					hrp=i
-					rootparts[v]=hrp
-					if con0 then
-						Disconnect(con0)
-						con0=nil
-					end
+			local hrpCollection=nil
+			local onadded=function(i)
+				hrp=i
+				rootparts[v]=hrp
+				if con0 then
+					Disconnect(con0)
+					con0=nil
 				end
+				CollectionDestroy(hrpCollection)
+				hrpCollection=nil
 			end
 			local oncharacter=function()
 				newc=insGet(v,"Character")
@@ -1691,12 +1675,12 @@ local reanimate=function()
 					end
 					characters[v]=newc
 					refreshrayfilter()
-					hrp=QueryDescendants(newc,">BasePart#HumanoidRootPart")[1]
-					if hrp then
-						rootparts[v]=hrp
-					else
-						con0=Connect(insGet(newc,"ChildAdded"),childadded)
+					if hrpCollection then
+						CollectionDestroy(hrpCollection)
+						hrpCollection=nil
 					end
+					hrpCollection=CreateCollection(cs,">BasePart#HumanoidRootPart",newc)
+					hrpCollection.OnAdded=onadded
 				end
 			end
 			local charcon=Connect(GetPropertyChangedSignal(v,"Character"),oncharacter)
@@ -1710,6 +1694,10 @@ local reanimate=function()
 					con0=nil
 				end
 				Disconnect(charcon)
+				if hrpCollection then
+					CollectionDestroy(hrpCollection)
+					hrpCollection=nil
+				end
 			end
 		end
 	end
@@ -2070,6 +2058,9 @@ local reanimate=function()
 
 	local predictionfling=function(target)
 		if not allowfling then
+			return false
+		end
+		if isServerAuthority then
 			return false
 		end
 		if typeof(target)~="Instance" then 
@@ -2602,12 +2593,12 @@ local reanimate=function()
 			local novel=i.n
 			
 			if part then
-				bulkNum+=1
 				if novel then
 					local vpos=cfGet(v,"Position")
 					if novoid and (v3Get(vpos,"Y")<novoid) then
 						v=cfAdd(v,v3_010*(novoid-v3Get(vpos,"Y")))
 					end
+					bulkNum+=1
 					bulkParts[bulkNum]=part
 					bulkCFrames[bulkNum]=v
 					insSet(part,"AssemblyAngularVelocity",v3_0)
@@ -2640,6 +2631,7 @@ local reanimate=function()
 										continue
 									end
 									
+									bulkNum+=1
 									if isPhysicsRepFling then
 										local tcf=insGet(p,"CFrame")
 										if novoid and (cfGet(tcf,"Y")<novoid) then
@@ -2663,6 +2655,7 @@ local reanimate=function()
 								end
 							end
 						end
+						bulkNum+=1
 						local placeholder=i.v
 						local vpos=cfGet(v,"Position")
 						if novoid and (v3Get(vpos,"Y")<novoid) then
@@ -2733,6 +2726,7 @@ local reanimate=function()
 						i.l=insGet(part,"Position")
 						local placeholder=i.v
 						if placeholder then
+							bulkNum+=1
 							bulkParts[bulkNum]=placeholder
 							bulkCFrames[bulkNum]=v
 							if not i.b then
@@ -2936,6 +2930,13 @@ local reanimate=function()
 			launchY=(launchY or 0)+y
 		end
 	end
+	local addVel=@native function(v)
+		fVel+=v
+		local y=v3Get(v,"Y")
+		if y~=0 then
+			launchY=(launchY or 0)+y
+		end
+	end
 	local setFriction=@native function(v)
 		friction=type(v)=="number" and v or 3
 	end
@@ -3054,6 +3055,7 @@ local reanimate=function()
 		setCameraMoveable=setCameraMoveable,
 		setNoVelocity=setNoVelocity,
 		setVel=setVel,
+		addVel=addVel,
 		setFriction=setFriction,
 		getWalkSpeed=getWalkSpeed,
 		getJumpPower=getJumpPower,
